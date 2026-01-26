@@ -1,0 +1,38 @@
+dist:
+  module: github.com/tero-platform/tero-collector-distro/collector
+  name: tero-collector
+  description: Tero OpenTelemetry Collector Distribution
+  version: 0.1.0
+  output_path: ./_build
+
+extensions:
+  - gomod: go.opentelemetry.io/collector/extension/zpagesextension v0.144.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/basicauthextension v0.144.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/bearertokenauthextension v0.144.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckv2extension v0.144.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/pprofextension v0.144.0
+
+exporters:
+  - gomod: go.opentelemetry.io/collector/exporter/debugexporter v0.144.0
+  - gomod: go.opentelemetry.io/collector/exporter/otlpexporter v0.144.0
+  - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.144.0
+
+processors:
+  - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.144.0
+  - gomod: go.opentelemetry.io/collector/processor/memorylimiterprocessor v0.144.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/attributesprocessor v0.144.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/filterprocessor v0.144.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourceprocessor v0.144.0
+  - gomod: github.com/tero-platform/tero-collector-distro/processor/policyprocessor v0.1.0
+    path: /build/processor/policyprocessor
+
+receivers:
+  - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver v0.144.0
+
+connectors:
+  - gomod: go.opentelemetry.io/collector/connector/forwardconnector v0.144.0
+
+providers:
+  - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v1.50.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/fileprovider v1.50.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.50.0
