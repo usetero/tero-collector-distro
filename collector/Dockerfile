@@ -23,6 +23,8 @@ RUN CGO_ENABLED=0 go build -o tero-collector .
 # Runtime stage
 FROM alpine:3.21
 
+LABEL org.opencontainers.image.description="Tero OpenTelemetry Collector Distribution"
+
 RUN apk add --no-cache ca-certificates
 
 COPY --from=builder /build/collector/_build/tero-collector /usr/bin/tero-collector
