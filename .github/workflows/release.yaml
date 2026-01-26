@@ -11,15 +11,6 @@ on:
         description: "Version to release (without v prefix)"
         required: false
         default: "0.0.0-test"
-      architectures:
-        description: "Architectures to build"
-        required: false
-        default: "amd64,arm64"
-        type: choice
-        options:
-          - "amd64"
-          - "arm64"
-          - "amd64,arm64"
       dry_run:
         description: "Dry run - build but don't push to registry"
         required: false
@@ -40,7 +31,6 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.version.outputs.version }}
-      build_matrix: ${{ steps.matrix.outputs.build_matrix }}
     steps:
       - name: Determine version
         id: version
@@ -51,31 +41,6 @@ jobs:
             echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Build matrix
-        id: matrix
-        run: |
-          ARCHS="${{ inputs.architectures || 'amd64,arm64' }}"
-
-          BUILD_MATRIX='{"include":['
-          FIRST=true
-
-          for arch in ${ARCHS//,/ }; do
-            if [ "$FIRST" = true ]; then
-              FIRST=false
-            else
-              BUILD_MATRIX="$BUILD_MATRIX,"
-            fi
-            if [ "$arch" = "amd64" ]; then
-              BUILD_MATRIX="$BUILD_MATRIX{\"arch\":\"amd64\",\"runner\":\"ubuntu-24.04\",\"platform\":\"linux/amd64\"}"
-            else
-              BUILD_MATRIX="$BUILD_MATRIX{\"arch\":\"arm64\",\"runner\":\"ubuntu-24.04-arm\",\"platform\":\"linux/arm64\"}"
-            fi
-          done
-
-          BUILD_MATRIX="$BUILD_MATRIX]}"
-          echo "build_matrix=$BUILD_MATRIX" >> $GITHUB_OUTPUT
-          echo "Build matrix: $BUILD_MATRIX"
-
   build:
     name: Build ${{ matrix.arch }}
     runs-on: ${{ matrix.runner }}
@@ -83,7 +48,14 @@ jobs:
     timeout-minutes: 30
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.prepare.outputs.build_matrix) }}
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+            platform: linux/amd64
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            platform: linux/arm64
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -102,23 +74,49 @@ jobs:
         run: |
           sed -i "s/version: .*/version: ${{ needs.prepare.outputs.version }}/" collector/manifest.yaml
 
-      - name: Build and push image
+      - name: Build and push by digest
+        id: build
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         with:
           context: .
           file: collector/Dockerfile
           platforms: ${{ matrix.platform }}
-          push: ${{ inputs.dry_run != true }}
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.version }}-${{ matrix.arch }}
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=${{ inputs.dry_run != true }}
           cache-from: type=gha,scope=${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
 
-  manifest:
-    name: Create multi-arch manifest
+      - name: Export digest
+        if: ${{ inputs.dry_run != true }}
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        if: ${{ inputs.dry_run != true }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: digests-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    name: Merge manifests
     runs-on: ubuntu-24.04
     needs: [prepare, build]
     if: ${{ inputs.dry_run != true }}
     steps:
+      - name: Download digests
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
+
       - name: Log in to Container Registry
         uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
@@ -126,37 +124,30 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create and push manifest
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5.7.0
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ needs.prepare.outputs.version }}
+            type=raw,value=latest,enable=${{ github.event_name != 'workflow_dispatch' }}
+            type=sha
+
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
         run: |
-          VERSION="${{ needs.prepare.outputs.version }}"
-          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
-          ARCHS="${{ inputs.architectures || 'amd64,arm64' }}"
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@sha256:%s ' *)
 
-          # Build the list of arch-specific images
-          IMAGES=""
-          for arch in ${ARCHS//,/ }; do
-            IMAGES="$IMAGES $IMAGE:$VERSION-$arch"
-          done
-
-          # Create and push version tag manifest
-          docker manifest create "$IMAGE:$VERSION" $IMAGES
-          docker manifest push "$IMAGE:$VERSION"
-
-          # Create and push latest tag manifest (only for tag pushes, not workflow_dispatch)
-          if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
-            docker manifest create "$IMAGE:latest" $IMAGES
-            docker manifest push "$IMAGE:latest"
-          fi
-
-          # Create and push sha tag manifest
-          SHA_SHORT=$(echo "${{ github.sha }}" | cut -c1-7)
-          docker manifest create "$IMAGE:sha-$SHA_SHORT" $IMAGES
-          docker manifest push "$IMAGE:sha-$SHA_SHORT"
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.version }}
 
   summary:
     name: Release summary
     runs-on: ubuntu-24.04
-    needs: [prepare, build, manifest]
+    needs: [prepare, build, merge]
     if: always()
     steps:
       - name: Generate summary
@@ -171,19 +162,13 @@ jobs:
 
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             echo "### Dry Run Mode" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
             echo "Images were built but not pushed to registry." >> $GITHUB_STEP_SUMMARY
           else
-            echo "### Docker Images" >> $GITHUB_STEP_SUMMARY
+            echo "### Docker Image" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "| Tag | Pull Command |" >> $GITHUB_STEP_SUMMARY
-            echo "|-----|--------------|" >> $GITHUB_STEP_SUMMARY
-            echo "| \`$VERSION\` | \`docker pull $IMAGE:$VERSION\` |" >> $GITHUB_STEP_SUMMARY
-
-            if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
-              echo "| \`latest\` | \`docker pull $IMAGE:latest\` |" >> $GITHUB_STEP_SUMMARY
-            fi
-
-            SHA_SHORT=$(echo "${{ github.sha }}" | cut -c1-7)
-            echo "| \`sha-$SHA_SHORT\` | \`docker pull $IMAGE:sha-$SHA_SHORT\` |" >> $GITHUB_STEP_SUMMARY
+            echo "**Platforms:** linux/amd64, linux/arm64" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            echo "docker pull $IMAGE:$VERSION" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           fi
