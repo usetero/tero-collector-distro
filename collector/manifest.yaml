@@ -4,6 +4,7 @@ dist:
   description: Tero OpenTelemetry Collector Distribution
   version: 0.1.0
   output_path: ./_build
+  cgo_enabled: true
 
 extensions:
   - gomod: go.opentelemetry.io/collector/extension/zpagesextension v0.144.0
