@@ -143,6 +143,32 @@ service:
       exporters: [debug]
 ```
 
+### Kubernetes
+
+To sample the policy processor in Kubernetes, you can install the example below
+(requires the
+[OpenTelemetry Operator](https://github.com/open-telemetry/opentelemetry-operator)
+to be installed already.)
+
+```bash
+kubectl apply -f examples/kubernetes/opentelemetry-collector.yaml
+```
+
+See [`examples/kubernetes/`](examples/kubernetes/) for a complete example with
+the `OpenTelemetryCollector` CRD and policies ConfigMap.
+
+> **Local Development with OrbStack**: When running Kubernetes locally with
+> [OrbStack](https://orbstack.dev/), you can access collector services directly
+> from your Mac using `<service>.<namespace>.svc.cluster.local`:
+>
+> ```bash
+> # gRPC endpoint
+> export OTEL_EXPORTER_OTLP_ENDPOINT=http://tero-collector-collector.observability.svc.cluster.local:4317
+>
+> # HTTP endpoint
+> curl http://tero-collector-collector.observability.svc.cluster.local:4318/v1/logs
+> ```
+
 ## Components
 
 This distribution includes the following components:
@@ -185,7 +211,8 @@ This distribution includes the following components:
 │   └── policyprocessor/ # Policy processor implementation
 ├── examples/
 │   ├── config.yaml      # Example collector configuration
-│   └── policies.json    # Example policy definitions
+│   ├── policies.json    # Example policy definitions
+│   └── kubernetes/      # Kubernetes deployment examples
 └── Taskfile.yaml        # Build automation
 ```
 
