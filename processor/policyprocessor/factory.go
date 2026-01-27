@@ -3,6 +3,7 @@ package policyprocessor
 import (
 	"context"
 
+	"github.com/tero-platform/tero-collector-distro/processor/policyprocessor/internal/metadata"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/processor"
@@ -27,7 +28,7 @@ func NewFactory() processor.Factory {
 
 func createDefaultConfig() component.Config {
 	return &Config{
-		Enabled: true,
+		Providers: nil,
 	}
 }
 
@@ -38,7 +39,11 @@ func createTracesProcessor(
 	nextConsumer consumer.Traces,
 ) (processor.Traces, error) {
 	pcfg := cfg.(*Config)
-	proc := newPolicyProcessor(set.Logger, pcfg)
+	telemetry, err := metadata.NewTelemetryBuilder(set.TelemetrySettings)
+	if err != nil {
+		return nil, err
+	}
+	proc := newPolicyProcessor(set.Logger, pcfg, telemetry)
 
 	return processorhelper.NewTraces(
 		ctx,
@@ -59,7 +64,11 @@ func createMetricsProcessor(
 	nextConsumer consumer.Metrics,
 ) (processor.Metrics, error) {
 	pcfg := cfg.(*Config)
-	proc := newPolicyProcessor(set.Logger, pcfg)
+	telemetry, err := metadata.NewTelemetryBuilder(set.TelemetrySettings)
+	if err != nil {
+		return nil, err
+	}
+	proc := newPolicyProcessor(set.Logger, pcfg, telemetry)
 
 	return processorhelper.NewMetrics(
 		ctx,
@@ -80,7 +89,11 @@ func createLogsProcessor(
 	nextConsumer consumer.Logs,
 ) (processor.Logs, error) {
 	pcfg := cfg.(*Config)
-	proc := newPolicyProcessor(set.Logger, pcfg)
+	telemetry, err := metadata.NewTelemetryBuilder(set.TelemetrySettings)
+	if err != nil {
+		return nil, err
+	}
+	proc := newPolicyProcessor(set.Logger, pcfg, telemetry)
 
 	return processorhelper.NewLogs(
 		ctx,
@@ -88,7 +101,7 @@ func createLogsProcessor(
 		cfg,
 		nextConsumer,
 		proc.processLogs,
-		processorhelper.WithCapabilities(consumer.Capabilities{MutatesData: false}),
+		processorhelper.WithCapabilities(consumer.Capabilities{MutatesData: true}),
 		processorhelper.WithStart(proc.start),
 		processorhelper.WithShutdown(proc.shutdown),
 	)
