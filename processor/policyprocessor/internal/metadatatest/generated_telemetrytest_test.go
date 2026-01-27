@@ -10,7 +10,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata/metricdatatest"
 
-	"github.com/usetero/tero-collector-distro/processor/policyprocessor/internal/metadata"
+	"github.com/tero-platform/tero-collector-distro/processor/policyprocessor/internal/metadata"
 	"go.opentelemetry.io/collector/component/componenttest"
 )
 
