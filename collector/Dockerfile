@@ -28,6 +28,9 @@ RUN go build -trimpath -o tero-collector -ldflags="-s -w" .
 FROM alpine:3.21
 
 LABEL org.opencontainers.image.description="Tero OpenTelemetry Collector Distribution"
+LABEL org.opencontainers.image.source="https://github.com/usetero/tero-collector-distro"
+LABEL org.opencontainers.image.licenses="Apache-2.0"
+
 
 RUN apk add --no-cache ca-certificates libstdc++ libgcc vectorscan
 
