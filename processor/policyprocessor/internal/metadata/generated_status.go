@@ -8,7 +8,7 @@ import (
 
 var (
 	Type      = component.MustNewType("policy")
-	ScopeName = "github.com/tero-platform/tero-collector-distro/processor/policyprocessor"
+	ScopeName = "github.com/usetero/tero-collector-distro/processor/policyprocessor"
 )
 
 const (
