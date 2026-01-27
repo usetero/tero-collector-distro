@@ -1,0 +1,107 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tero-collector-policies
+  namespace: default
+data:
+  policies.json: |
+    {
+      "policies": [
+        {
+          "id": "drop-debug-logs",
+          "name": "Drop debug level logs",
+          "log": {
+            "match": [{ "log_field": "severity_text", "regex": "DEBUG" }],
+            "keep": "none"
+          }
+        },
+        {
+          "id": "drop-health-check-logs",
+          "name": "Drop health check logs",
+          "log": {
+            "match": [{ "log_field": "body", "regex": "health.*check|readiness|liveness" }],
+            "keep": "none"
+          }
+        },
+        {
+          "id": "sample-high-volume-service",
+          "name": "Sample high-volume service logs at 10%",
+          "log": {
+            "match": [{ "resource_attribute": "service.name", "regex": "^high-volume-.*$" }],
+            "keep": { "percentage": 10.0 }
+          }
+        }
+      ]
+    }
+---
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: tero-collector
+  namespace: default
+spec:
+  mode: deployment
+  replicas: 1
+  image: ghcr.io/usetero/tero-collector-distro:latest
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+
+    processors:
+      batch:
+        timeout: 1s
+        send_batch_size: 1024
+
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 80
+        spike_limit_percentage: 25
+
+      policy:
+        providers:
+          - type: file
+            id: local-policies
+            path: /etc/tero-collector/policies.json
+            poll_interval_secs: 30
+
+    exporters:
+      debug:
+        verbosity: detailed
+
+    service:
+      pipelines:
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, policy, batch]
+          exporters: [debug]
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [debug]
+        metrics:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [debug]
+  volumes:
+    - name: collector-policies
+      configMap:
+        name: tero-collector-policies
+  volumeMounts:
+    - name: collector-policies
+      mountPath: /etc/tero-collector/policies.json
+      subPath: policies.json
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8888"
