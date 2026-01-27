@@ -1,8 +1,8 @@
 # Tero Collector
 
 <p align="center">
-  <a href="https://github.com/tero-platform/tero-collector-distro/actions/workflows/release.yaml">
-    <img src="https://github.com/tero-platform/tero-collector-distro/actions/workflows/release.yaml/badge.svg" alt="Build Status">
+  <a href="https://github.com/usetero/tero-collector-distro/actions/workflows/release.yaml">
+    <img src="https://img.shields.io/github/actions/workflow/status/usetero/tero-collector-distro/release.yaml?label=build" alt="Build Status">
   </a>
   <a href="https://opensource.org/licenses/Apache-2.0">
     <img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License">
