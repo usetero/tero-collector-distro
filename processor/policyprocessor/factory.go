@@ -3,7 +3,7 @@ package policyprocessor
 import (
 	"context"
 
-	"github.com/tero-platform/tero-collector-distro/processor/policyprocessor/internal/metadata"
+	"github.com/usetero/tero-collector-distro/processor/policyprocessor/internal/metadata"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/processor"
