@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync/atomic"
 
+	"github.com/tero-platform/tero-collector-distro/processor/policyprocessor/internal/metadata"
 	"github.com/usetero/policy-go"
-	"github.com/usetero/tero-collector-distro/processor/policyprocessor/internal/metadata"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"

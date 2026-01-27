@@ -13,11 +13,11 @@ import (
 )
 
 func Meter(settings component.TelemetrySettings) metric.Meter {
-	return settings.MeterProvider.Meter("github.com/usetero/tero-collector-distro/processor/policyprocessor")
+	return settings.MeterProvider.Meter("github.com/tero-platform/tero-collector-distro/processor/policyprocessor")
 }
 
 func Tracer(settings component.TelemetrySettings) trace.Tracer {
-	return settings.TracerProvider.Tracer("github.com/usetero/tero-collector-distro/processor/policyprocessor")
+	return settings.TracerProvider.Tracer("github.com/tero-platform/tero-collector-distro/processor/policyprocessor")
 }
 
 // TelemetryBuilder provides an interface for components to report telemetry
