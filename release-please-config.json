@@ -8,6 +8,10 @@
           "type": "yaml",
           "path": "collector/manifest.yaml",
           "jsonpath": "$.dist.version"
+        },
+        {
+          "type": "generic",
+          "path": "collector/manifest.yaml"
         }
       ]
     }
