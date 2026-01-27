@@ -28,8 +28,7 @@ func NewFactory() processor.Factory {
 
 func createDefaultConfig() component.Config {
 	return &Config{
-		PolicyFile:   "",
-		PollInterval: 0, // Will default to 30s
+		Providers: nil,
 	}
 }
 

@@ -11,7 +11,10 @@ status:
 
 tests:
   config:
-    policy_file: testdata/policies.json
+    providers:
+      - type: file
+        id: test
+        path: testdata/policies.json
 
 telemetry:
   metrics:

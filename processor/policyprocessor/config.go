@@ -1,29 +1,29 @@
 package policyprocessor
 
 import (
-	"errors"
-	"time"
+	"fmt"
 
+	"github.com/usetero/policy-go"
 	"go.opentelemetry.io/collector/component"
 )
 
 // Config defines the configuration for the policy processor.
 type Config struct {
-	// PolicyFile is the path to a JSON file containing policies.
-	// The file will be watched for changes and policies will be reloaded automatically.
-	PolicyFile string `mapstructure:"policy_file"`
-
-	// PollInterval is how often to check for policy file changes.
-	// Default: 30s
-	PollInterval time.Duration `mapstructure:"poll_interval"`
+	// Providers is the list of policy providers to use.
+	Providers []policy.ProviderConfig `mapstructure:"providers"`
 }
 
 var _ component.Config = (*Config)(nil)
 
 // Validate checks if the processor configuration is valid.
 func (cfg *Config) Validate() error {
-	if cfg.PolicyFile == "" {
-		return errors.New("policy_file is required")
+	if len(cfg.Providers) == 0 {
+		return fmt.Errorf("at least one provider is required")
+	}
+	for i, p := range cfg.Providers {
+		if err := p.Validate(); err != nil {
+			return fmt.Errorf("provider[%d]: %w", i, err)
+		}
 	}
 	return nil
 }

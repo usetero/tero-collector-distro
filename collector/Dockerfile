@@ -1,8 +1,11 @@
 # Build stage
 FROM golang:1.24-alpine AS builder
 
-# Install build dependencies including Hyperscan
-RUN apk add --no-cache git build-base hyperscan-dev pkgconf
+# Install build dependencies including Vectorscan (Hyperscan fork)
+RUN apk add --no-cache git build-base vectorscan-dev vectorscan-static pkgconf
+
+# Enable CGO for Vectorscan support
+ENV CGO_ENABLED=1
 
 # Install ocb (OpenTelemetry Collector Builder)
 RUN go install go.opentelemetry.io/collector/cmd/builder@v0.144.0
@@ -14,19 +17,19 @@ COPY . .
 
 WORKDIR /build/collector
 
-# Generate collector source code from manifest
-RUN builder --config=manifest.yaml
+# Generate collector source code (skip compilation to control CGO ourselves)
+RUN builder --config=manifest.yaml --skip-compilation
 
-# Build the collector with CGO enabled for Hyperscan
+# Build the collector with CGO enabled for Vectorscan
 WORKDIR /build/collector/_build
-RUN CGO_ENABLED=1 go build -o tero-collector .
+RUN go build -trimpath -o tero-collector -ldflags="-s -w" .
 
 # Runtime stage
 FROM alpine:3.21
 
 LABEL org.opencontainers.image.description="Tero OpenTelemetry Collector Distribution"
 
-RUN apk add --no-cache ca-certificates hyperscan
+RUN apk add --no-cache ca-certificates libstdc++ libgcc vectorscan
 
 COPY --from=builder /build/collector/_build/tero-collector /usr/bin/tero-collector
 

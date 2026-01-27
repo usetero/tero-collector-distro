@@ -3,7 +3,6 @@ package policyprocessor
 import (
 	"context"
 	"sync/atomic"
-	"time"
 
 	"github.com/tero-platform/tero-collector-distro/processor/policyprocessor/internal/metadata"
 	"github.com/usetero/policy-go"
@@ -28,7 +27,7 @@ type policyProcessor struct {
 	telemetry *metadata.TelemetryBuilder
 	registry  *policy.PolicyRegistry
 	engine    *policy.PolicyEngine
-	provider  *policy.FileProvider
+	providers []policy.LoadedProvider
 	snapshot  atomic.Pointer[policy.PolicySnapshot]
 }
 
@@ -43,41 +42,39 @@ func newPolicyProcessor(logger *zap.Logger, cfg *Config, telemetry *metadata.Tel
 
 func (p *policyProcessor) start(_ context.Context, _ component.Host) error {
 	p.logger.Info("Policy processor starting",
-		zap.String("policy_file", p.config.PolicyFile),
-		zap.Duration("poll_interval", p.config.PollInterval),
+		zap.Int("provider_count", len(p.config.Providers)),
 	)
 
 	// Create registry
 	p.registry = policy.NewPolicyRegistry()
 
-	// Determine poll interval
-	pollInterval := p.config.PollInterval
-	if pollInterval == 0 {
-		pollInterval = 30 * time.Second
-	}
+	// Set callback for when policies are recompiled
+	// The callback receives the new snapshot directly, avoiding lock contention
+	p.registry.SetOnRecompile(func(snapshot *policy.PolicySnapshot) {
+		p.logger.Info("Policies recompiled")
+		p.snapshot.Store(snapshot)
+	})
 
-	// Create file provider with hot-reload
-	p.provider = policy.NewFileProvider(
-		p.config.PolicyFile,
-		policy.WithPollInterval(pollInterval),
-		policy.WithOnReload(func() {
-			p.logger.Info("Policies reloaded")
-			p.updateSnapshot()
-		}),
-		policy.WithOnError(func(err error) {
-			p.logger.Error("Policy reload error", zap.Error(err))
-		}),
-	)
+	// Create config loader
+	loader := policy.NewConfigLoader(p.registry).
+		WithOnError(func(err error) {
+			p.logger.Error("Policy provider error", zap.Error(err))
+		})
 
-	// Register provider
-	if _, err := p.registry.Register(p.provider); err != nil {
+	// Load providers from config
+	cfg := &policy.Config{Providers: p.config.Providers}
+	providers, err := loader.Load(cfg)
+	if err != nil {
 		return err
 	}
+	p.providers = providers
 
 	// Get initial snapshot
 	p.updateSnapshot()
 
-	p.logger.Info("Policy processor started")
+	p.logger.Info("Policy processor started",
+		zap.Int("providers_loaded", len(p.providers)),
+	)
 	return nil
 }
 
@@ -88,8 +85,9 @@ func (p *policyProcessor) updateSnapshot() {
 
 func (p *policyProcessor) shutdown(_ context.Context) error {
 	p.logger.Info("Policy processor shutting down")
-	if p.provider != nil {
-		p.provider.Stop()
+	if len(p.providers) > 0 {
+		policy.StopAll(p.providers)
+		policy.UnregisterAll(p.providers)
 	}
 	if p.telemetry != nil {
 		p.telemetry.Shutdown()

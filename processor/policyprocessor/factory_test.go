@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/usetero/policy-go"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/consumer/consumertest"
@@ -16,8 +17,14 @@ import (
 
 var testType = component.MustNewType("policy")
 
-func testPolicyFile() string {
-	return filepath.Join("testdata", "policies.json")
+func testProviders() []policy.ProviderConfig {
+	return []policy.ProviderConfig{
+		{
+			Type: "file",
+			ID:   "test",
+			Path: filepath.Join("testdata", "policies.json"),
+		},
+	}
 }
 
 func TestNewFactory(t *testing.T) {
@@ -46,7 +53,7 @@ func TestCreateDefaultConfig(t *testing.T) {
 func TestCreateTracesProcessor(t *testing.T) {
 	factory := NewFactory()
 	cfg := factory.CreateDefaultConfig().(*Config)
-	cfg.PolicyFile = testPolicyFile()
+	cfg.Providers = testProviders()
 
 	ctx := context.Background()
 	set := processortest.NewNopSettings(testType)
@@ -73,7 +80,7 @@ func TestCreateTracesProcessor(t *testing.T) {
 func TestCreateMetricsProcessor(t *testing.T) {
 	factory := NewFactory()
 	cfg := factory.CreateDefaultConfig().(*Config)
-	cfg.PolicyFile = testPolicyFile()
+	cfg.Providers = testProviders()
 
 	ctx := context.Background()
 	set := processortest.NewNopSettings(testType)
@@ -100,7 +107,7 @@ func TestCreateMetricsProcessor(t *testing.T) {
 func TestCreateLogsProcessor(t *testing.T) {
 	factory := NewFactory()
 	cfg := factory.CreateDefaultConfig().(*Config)
-	cfg.PolicyFile = testPolicyFile()
+	cfg.Providers = testProviders()
 
 	ctx := context.Background()
 	set := processortest.NewNopSettings(testType)
@@ -127,7 +134,7 @@ func TestCreateLogsProcessor(t *testing.T) {
 func TestProcessTraces(t *testing.T) {
 	factory := NewFactory()
 	cfg := factory.CreateDefaultConfig().(*Config)
-	cfg.PolicyFile = testPolicyFile()
+	cfg.Providers = testProviders()
 
 	ctx := context.Background()
 	set := processortest.NewNopSettings(testType)
@@ -164,7 +171,7 @@ func TestProcessTraces(t *testing.T) {
 func TestProcessMetrics(t *testing.T) {
 	factory := NewFactory()
 	cfg := factory.CreateDefaultConfig().(*Config)
-	cfg.PolicyFile = testPolicyFile()
+	cfg.Providers = testProviders()
 
 	ctx := context.Background()
 	set := processortest.NewNopSettings(testType)
@@ -201,7 +208,7 @@ func TestProcessMetrics(t *testing.T) {
 func TestProcessLogs_PassThrough(t *testing.T) {
 	factory := NewFactory()
 	cfg := factory.CreateDefaultConfig().(*Config)
-	cfg.PolicyFile = testPolicyFile()
+	cfg.Providers = testProviders()
 
 	ctx := context.Background()
 	set := processortest.NewNopSettings(testType)
@@ -240,7 +247,7 @@ func TestProcessLogs_PassThrough(t *testing.T) {
 func TestProcessLogs_Drop(t *testing.T) {
 	factory := NewFactory()
 	cfg := factory.CreateDefaultConfig().(*Config)
-	cfg.PolicyFile = testPolicyFile()
+	cfg.Providers = testProviders()
 
 	ctx := context.Background()
 	set := processortest.NewNopSettings(testType)
