@@ -1,0 +1,46 @@
+type: policy
+
+status:
+  class: processor
+  stability:
+    alpha: [logs]
+  distributions: []
+  warnings: []
+  codeowners:
+    active: [jaronoff97]
+
+tests:
+  config:
+    policy_file: testdata/policies.json
+
+telemetry:
+  metrics:
+    processor_policy_records:
+      enabled: true
+      description: Number of telemetry records processed by the policy processor
+      unit: "1"
+      sum:
+        value_type: int
+        monotonic: true
+      attributes:
+        - telemetry_type
+        - result
+      stability:
+        level: development
+
+attributes:
+  result:
+    description: The result of policy evaluation
+    type: string
+    enum:
+      - dropped
+      - kept
+      - no_match
+      - sampled
+  telemetry_type:
+    description: The type of telemetry (logs, metrics, traces)
+    type: string
+    enum:
+      - logs
+      - metrics
+      - traces

@@ -2,6 +2,7 @@ package policyprocessor
 
 import (
 	"context"
+	"path/filepath"
 	"testing"
 
 	"go.opentelemetry.io/collector/component"
@@ -14,6 +15,10 @@ import (
 )
 
 var testType = component.MustNewType("policy")
+
+func testPolicyFile() string {
+	return filepath.Join("testdata", "policies.json")
+}
 
 func TestNewFactory(t *testing.T) {
 	factory := NewFactory()
@@ -32,18 +37,17 @@ func TestCreateDefaultConfig(t *testing.T) {
 		t.Fatal("CreateDefaultConfig() returned nil")
 	}
 
-	pcfg, ok := cfg.(*Config)
+	_, ok := cfg.(*Config)
 	if !ok {
 		t.Fatal("config is not of type *Config")
-	}
-	if !pcfg.Enabled {
-		t.Error("expected Enabled to be true by default")
 	}
 }
 
 func TestCreateTracesProcessor(t *testing.T) {
 	factory := NewFactory()
-	cfg := factory.CreateDefaultConfig()
+	cfg := factory.CreateDefaultConfig().(*Config)
+	cfg.PolicyFile = testPolicyFile()
+
 	ctx := context.Background()
 	set := processortest.NewNopSettings(testType)
 	next := consumertest.NewNop()
@@ -56,7 +60,6 @@ func TestCreateTracesProcessor(t *testing.T) {
 		t.Fatal("CreateTraces() returned nil processor")
 	}
 
-	// Test lifecycle
 	err = proc.Start(ctx, componenttest.NewNopHost())
 	if err != nil {
 		t.Fatalf("Start() error: %v", err)
@@ -69,7 +72,9 @@ func TestCreateTracesProcessor(t *testing.T) {
 
 func TestCreateMetricsProcessor(t *testing.T) {
 	factory := NewFactory()
-	cfg := factory.CreateDefaultConfig()
+	cfg := factory.CreateDefaultConfig().(*Config)
+	cfg.PolicyFile = testPolicyFile()
+
 	ctx := context.Background()
 	set := processortest.NewNopSettings(testType)
 	next := consumertest.NewNop()
@@ -82,7 +87,6 @@ func TestCreateMetricsProcessor(t *testing.T) {
 		t.Fatal("CreateMetrics() returned nil processor")
 	}
 
-	// Test lifecycle
 	err = proc.Start(ctx, componenttest.NewNopHost())
 	if err != nil {
 		t.Fatalf("Start() error: %v", err)
@@ -95,7 +99,9 @@ func TestCreateMetricsProcessor(t *testing.T) {
 
 func TestCreateLogsProcessor(t *testing.T) {
 	factory := NewFactory()
-	cfg := factory.CreateDefaultConfig()
+	cfg := factory.CreateDefaultConfig().(*Config)
+	cfg.PolicyFile = testPolicyFile()
+
 	ctx := context.Background()
 	set := processortest.NewNopSettings(testType)
 	next := consumertest.NewNop()
@@ -108,7 +114,6 @@ func TestCreateLogsProcessor(t *testing.T) {
 		t.Fatal("CreateLogs() returned nil processor")
 	}
 
-	// Test lifecycle
 	err = proc.Start(ctx, componenttest.NewNopHost())
 	if err != nil {
 		t.Fatalf("Start() error: %v", err)
@@ -121,7 +126,9 @@ func TestCreateLogsProcessor(t *testing.T) {
 
 func TestProcessTraces(t *testing.T) {
 	factory := NewFactory()
-	cfg := factory.CreateDefaultConfig()
+	cfg := factory.CreateDefaultConfig().(*Config)
+	cfg.PolicyFile = testPolicyFile()
+
 	ctx := context.Background()
 	set := processortest.NewNopSettings(testType)
 	sink := new(consumertest.TracesSink)
@@ -137,7 +144,6 @@ func TestProcessTraces(t *testing.T) {
 	}
 	defer proc.Shutdown(ctx)
 
-	// Create test traces
 	td := ptrace.NewTraces()
 	rs := td.ResourceSpans().AppendEmpty()
 	rs.Resource().Attributes().PutStr("service.name", "test-service")
@@ -150,7 +156,6 @@ func TestProcessTraces(t *testing.T) {
 		t.Fatalf("ConsumeTraces() error: %v", err)
 	}
 
-	// Verify traces were passed through
 	if len(sink.AllTraces()) != 1 {
 		t.Errorf("expected 1 trace, got %d", len(sink.AllTraces()))
 	}
@@ -158,7 +163,9 @@ func TestProcessTraces(t *testing.T) {
 
 func TestProcessMetrics(t *testing.T) {
 	factory := NewFactory()
-	cfg := factory.CreateDefaultConfig()
+	cfg := factory.CreateDefaultConfig().(*Config)
+	cfg.PolicyFile = testPolicyFile()
+
 	ctx := context.Background()
 	set := processortest.NewNopSettings(testType)
 	sink := new(consumertest.MetricsSink)
@@ -174,7 +181,6 @@ func TestProcessMetrics(t *testing.T) {
 	}
 	defer proc.Shutdown(ctx)
 
-	// Create test metrics
 	md := pmetric.NewMetrics()
 	rm := md.ResourceMetrics().AppendEmpty()
 	rm.Resource().Attributes().PutStr("service.name", "test-service")
@@ -187,15 +193,16 @@ func TestProcessMetrics(t *testing.T) {
 		t.Fatalf("ConsumeMetrics() error: %v", err)
 	}
 
-	// Verify metrics were passed through
 	if len(sink.AllMetrics()) != 1 {
 		t.Errorf("expected 1 metrics, got %d", len(sink.AllMetrics()))
 	}
 }
 
-func TestProcessLogs(t *testing.T) {
+func TestProcessLogs_PassThrough(t *testing.T) {
 	factory := NewFactory()
-	cfg := factory.CreateDefaultConfig()
+	cfg := factory.CreateDefaultConfig().(*Config)
+	cfg.PolicyFile = testPolicyFile()
+
 	ctx := context.Background()
 	set := processortest.NewNopSettings(testType)
 	sink := new(consumertest.LogsSink)
@@ -211,21 +218,67 @@ func TestProcessLogs(t *testing.T) {
 	}
 	defer proc.Shutdown(ctx)
 
-	// Create test logs
+	// INFO log should pass through (not matched by drop-debug policy)
 	ld := plog.NewLogs()
 	rl := ld.ResourceLogs().AppendEmpty()
 	rl.Resource().Attributes().PutStr("service.name", "test-service")
 	sl := rl.ScopeLogs().AppendEmpty()
 	lr := sl.LogRecords().AppendEmpty()
-	lr.Body().SetStr("test log message")
+	lr.Body().SetStr("info log message")
+	lr.SetSeverityText("INFO")
 
 	err = proc.ConsumeLogs(ctx, ld)
 	if err != nil {
 		t.Fatalf("ConsumeLogs() error: %v", err)
 	}
 
-	// Verify logs were passed through
 	if len(sink.AllLogs()) != 1 {
-		t.Errorf("expected 1 logs, got %d", len(sink.AllLogs()))
+		t.Errorf("expected 1 log batch, got %d", len(sink.AllLogs()))
+	}
+}
+
+func TestProcessLogs_Drop(t *testing.T) {
+	factory := NewFactory()
+	cfg := factory.CreateDefaultConfig().(*Config)
+	cfg.PolicyFile = testPolicyFile()
+
+	ctx := context.Background()
+	set := processortest.NewNopSettings(testType)
+	sink := new(consumertest.LogsSink)
+
+	proc, err := factory.CreateLogs(ctx, set, cfg, sink)
+	if err != nil {
+		t.Fatalf("CreateLogs() error: %v", err)
+	}
+
+	err = proc.Start(ctx, componenttest.NewNopHost())
+	if err != nil {
+		t.Fatalf("Start() error: %v", err)
+	}
+	defer proc.Shutdown(ctx)
+
+	// DEBUG log should be dropped by the policy
+	ld := plog.NewLogs()
+	rl := ld.ResourceLogs().AppendEmpty()
+	rl.Resource().Attributes().PutStr("service.name", "test-service")
+	sl := rl.ScopeLogs().AppendEmpty()
+	lr := sl.LogRecords().AppendEmpty()
+	lr.Body().SetStr("debug log message")
+	lr.SetSeverityText("DEBUG")
+
+	err = proc.ConsumeLogs(ctx, ld)
+	if err != nil {
+		t.Fatalf("ConsumeLogs() error: %v", err)
+	}
+
+	// Log batch is sent but should have 0 records
+	if len(sink.AllLogs()) != 1 {
+		t.Fatalf("expected 1 log batch, got %d", len(sink.AllLogs()))
+	}
+
+	logs := sink.AllLogs()[0]
+	recordCount := logs.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().Len()
+	if recordCount != 0 {
+		t.Errorf("expected 0 log records (dropped), got %d", recordCount)
 	}
 }
