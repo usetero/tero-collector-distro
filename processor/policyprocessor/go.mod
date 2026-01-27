@@ -1,4 +1,4 @@
-module github.com/tero-platform/tero-collector-distro/processor/policyprocessor
+module github.com/usetero/tero-collector-distro/processor/policyprocessor
 
 go 1.24.0
 

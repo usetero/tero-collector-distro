@@ -1,5 +1,5 @@
 dist:
-  module: github.com/tero-platform/tero-collector-distro/collector
+  module: github.com/usetero/tero-collector-distro/collector
   name: tero-collector
   description: Tero OpenTelemetry Collector Distribution
   version: 0.2.0
@@ -36,7 +36,7 @@ processors:
       github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourceprocessor
       v0.144.0
   - gomod: >-
-      github.com/tero-platform/tero-collector-distro/processor/policyprocessor
+      github.com/usetero/tero-collector-distro/processor/policyprocessor
       v0.1.0
     path: /build/processor/policyprocessor
 receivers:
