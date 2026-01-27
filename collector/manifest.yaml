@@ -2,7 +2,7 @@ dist:
   module: github.com/usetero/tero-collector-distro/collector
   name: tero-collector
   description: Tero OpenTelemetry Collector Distribution
-  version: 0.2.0
+  version: 0.2.1
   output_path: ./_build
   cgo_enabled: true
 extensions:
@@ -35,9 +35,7 @@ processors:
   - gomod: >-
       github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourceprocessor
       v0.144.0
-  # x-release-please-start-version
   - gomod: github.com/usetero/tero-collector-distro/processor/policyprocessor v0.2.0
-    # x-release-please-end
     path: /build/processor/policyprocessor
 receivers:
   - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver v0.144.0

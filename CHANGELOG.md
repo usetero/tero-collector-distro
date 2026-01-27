@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/usetero/tero-collector-distro/compare/v0.2.0...v0.2.1) (2026-01-27)
+
+
+### Bug Fixes
+
+* org name is usetero ([f20c265](https://github.com/usetero/tero-collector-distro/commit/f20c2651106e9920b57975158edaad1dced02730))
+* update policy proc version too ([#15](https://github.com/usetero/tero-collector-distro/issues/15)) ([cc3f7cc](https://github.com/usetero/tero-collector-distro/commit/cc3f7cc3a7f6e51251f742532fc15ec06be2708c))
+
 ## [0.2.0](https://github.com/usetero/tero-collector-distro/compare/v0.1.0...v0.2.0) (2026-01-27)
 
 
