@@ -2,7 +2,7 @@ dist:
   module: github.com/usetero/tero-collector-distro/collector
   name: tero-collector
   description: Tero OpenTelemetry Collector Distribution
-  version: 0.2.1
+  version: 0.3.0
   output_path: ./_build
   cgo_enabled: true
 extensions:
