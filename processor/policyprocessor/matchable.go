@@ -55,7 +55,11 @@ func (w *LogRecordWrapper) GetField(field policy.LogField) []byte {
 }
 
 // GetAttribute implements policy.LogMatchable.
-func (w *LogRecordWrapper) GetAttribute(scope policy.AttrScope, name string) []byte {
+func (w *LogRecordWrapper) GetAttribute(scope policy.AttrScope, path []string) []byte {
+	if len(path) == 0 {
+		return nil
+	}
+
 	var attrs pcommon.Map
 	switch scope {
 	case policy.AttrScopeResource:
@@ -67,10 +71,25 @@ func (w *LogRecordWrapper) GetAttribute(scope policy.AttrScope, name string) []b
 	default:
 		return nil
 	}
-	if val, ok := attrs.Get(name); ok {
+
+	return traversePath(attrs, path)
+}
+
+func traversePath(attrs pcommon.Map, path []string) []byte {
+	val, ok := attrs.Get(path[0])
+	if !ok {
+		return nil
+	}
+
+	if len(path) == 1 {
 		return valueToBytes(val)
 	}
-	return nil
+
+	if val.Type() != pcommon.ValueTypeMap {
+		return nil
+	}
+
+	return traversePath(val.Map(), path[1:])
 }
 
 func valueToBytes(val pcommon.Value) []byte {
