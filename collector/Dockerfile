@@ -29,8 +29,9 @@ RUN apk add --no-cache ca-certificates libstdc++ libgcc vectorscan
 
 COPY --from=builder /build/collector/_build/tero-collector /usr/bin/tero-collector
 
-# Default config location
+# Default config and policies
 COPY --from=builder /build/collector/config.yaml /etc/tero-collector/config.yaml
+COPY --from=builder /build/collector/policies.json /etc/tero-collector/policies.json
 
 EXPOSE 4317 4318 13133
 

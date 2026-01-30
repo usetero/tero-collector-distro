@@ -17,6 +17,15 @@ tasks:
       - go build ./...
 
   build:collector:
+    desc: Build the collector binary
+    dir: collector
+    cmds:
+      # manifest.yaml uses /build/processor for Docker builds; rewrite to relative path for local builds
+      - sed 's|/build/processor|../processor|' manifest.yaml > manifest.local.yaml
+      - builder --config=manifest.local.yaml
+      - rm manifest.local.yaml
+
+  build:docker:
     desc: Build the collector Docker image
     cmds:
       - docker build -f collector/Dockerfile -t tero-collector .
@@ -109,7 +118,7 @@ tasks:
     cmds:
       - task: do
       - task: build
-      - task: build:collector
+      - task: build:docker
       - echo "Release build complete"
 
   signoff:

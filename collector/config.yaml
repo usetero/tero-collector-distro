@@ -12,6 +12,10 @@ processors:
     check_interval: 1s
     limit_mib: 512
   policy:
+    providers:
+      - type: file
+        id: default
+        path: /etc/tero-collector/policies.json
 
 exporters:
   debug:
