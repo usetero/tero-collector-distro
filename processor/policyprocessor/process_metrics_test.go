@@ -198,7 +198,6 @@ func TestProcessMetrics_DropByType(t *testing.T) {
 					Match: []*policyv1.MetricMatcher{
 						{
 							Field: &policyv1.MetricMatcher_MetricType{MetricType: policyv1.MetricType_METRIC_TYPE_HISTOGRAM},
-							Match: &policyv1.MetricMatcher_Exists{Exists: true},
 						},
 					},
 					Keep: false,
@@ -343,7 +342,6 @@ func TestProcessMetrics_MultipleMatchers(t *testing.T) {
 						},
 						{
 							Field: &policyv1.MetricMatcher_MetricType{MetricType: policyv1.MetricType_METRIC_TYPE_HISTOGRAM},
-							Match: &policyv1.MetricMatcher_Exists{Exists: true},
 						},
 					},
 					Keep: false,
@@ -535,8 +533,8 @@ func TestProcessMetrics_DropAllDatapoints(t *testing.T) {
 	result, err := p.processMetrics(context.Background(), metrics)
 
 	require.NoError(t, err)
-	// Metric should be removed entirely when all datapoints are dropped
-	assert.Equal(t, 0, result.ResourceMetrics().At(0).ScopeMetrics().At(0).Metrics().Len())
+	// When all metrics are dropped, empty resources are removed too
+	assert.Equal(t, 0, result.ResourceMetrics().Len())
 }
 
 func TestProcessMetrics_EmptyMetrics(t *testing.T) {

@@ -86,8 +86,32 @@ func (p *policyProcessor) shutdown(_ context.Context) error {
 	return nil
 }
 
-func (p *policyProcessor) processTraces(_ context.Context, td ptrace.Traces) (ptrace.Traces, error) {
-	// Traces not yet supported - pass through
+func (p *policyProcessor) processTraces(ctx context.Context, td ptrace.Traces) (ptrace.Traces, error) {
+	td.ResourceSpans().RemoveIf(func(rs ptrace.ResourceSpans) bool {
+		resource := rs.Resource()
+
+		rs.ScopeSpans().RemoveIf(func(ss ptrace.ScopeSpans) bool {
+			scope := ss.Scope()
+
+			ss.Spans().RemoveIf(func(span ptrace.Span) bool {
+				traceCtx := TraceContext{
+					Span:     span,
+					Resource: resource,
+					Scope:    scope,
+				}
+
+				result := policy.EvaluateTrace(p.engine, traceCtx, TraceMatcher)
+				p.recordMetric(ctx, "traces", result)
+
+				return result == policy.ResultDrop
+			})
+
+			return ss.Spans().Len() == 0
+		})
+
+		return rs.ScopeSpans().Len() == 0
+	})
+
 	return td, nil
 }
 

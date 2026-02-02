@@ -2,11 +2,9 @@ module github.com/usetero/tero-collector-distro/processor/policyprocessor
 
 go 1.24.0
 
-replace github.com/usetero/policy-go => ../../../policy-go
-
 require (
 	github.com/stretchr/testify v1.11.1
-	github.com/usetero/policy-go v1.2.0
+	github.com/usetero/policy-go v1.2.1-0.20260202194130-38959ef84d9f
 	go.opentelemetry.io/collector/component v1.50.1-0.20260121161034-55399d4743af
 	go.opentelemetry.io/collector/component/componenttest v0.144.0
 	go.opentelemetry.io/collector/confmap v1.50.0

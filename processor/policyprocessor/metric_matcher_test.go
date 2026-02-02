@@ -80,7 +80,7 @@ func TestMetricMatcher_Fields(t *testing.T) {
 				return MetricContext{Metric: m}
 			},
 			ref:      policy.MetricType(),
-			expected: []byte("METRIC_TYPE_GAUGE"),
+			expected: []byte("gauge"),
 		},
 		{
 			name: "metric type sum",
@@ -90,7 +90,7 @@ func TestMetricMatcher_Fields(t *testing.T) {
 				return MetricContext{Metric: m}
 			},
 			ref:      policy.MetricType(),
-			expected: []byte("METRIC_TYPE_SUM"),
+			expected: []byte("sum"),
 		},
 		{
 			name: "metric type histogram",
@@ -100,7 +100,7 @@ func TestMetricMatcher_Fields(t *testing.T) {
 				return MetricContext{Metric: m}
 			},
 			ref:      policy.MetricType(),
-			expected: []byte("METRIC_TYPE_HISTOGRAM"),
+			expected: []byte("histogram"),
 		},
 		{
 			name: "aggregation temporality cumulative",
@@ -111,7 +111,7 @@ func TestMetricMatcher_Fields(t *testing.T) {
 				}
 			},
 			ref:      policy.MetricAggregationTemporality(),
-			expected: []byte("AGGREGATION_TEMPORALITY_CUMULATIVE"),
+			expected: []byte("cumulative"),
 		},
 		{
 			name: "aggregation temporality delta",
@@ -122,7 +122,7 @@ func TestMetricMatcher_Fields(t *testing.T) {
 				}
 			},
 			ref:      policy.MetricAggregationTemporality(),
-			expected: []byte("AGGREGATION_TEMPORALITY_DELTA"),
+			expected: []byte("delta"),
 		},
 		{
 			name: "scope name",

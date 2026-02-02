@@ -38,26 +38,26 @@ func MetricMatcher(ctx MetricContext, ref policy.MetricFieldRef) []byte {
 		case policy.MetricFieldType:
 			switch ctx.Metric.Type() {
 			case pmetric.MetricTypeGauge:
-				return []byte("METRIC_TYPE_GAUGE")
+				return []byte("gauge")
 			case pmetric.MetricTypeSum:
-				return []byte("METRIC_TYPE_SUM")
+				return []byte("sum")
 			case pmetric.MetricTypeHistogram:
-				return []byte("METRIC_TYPE_HISTOGRAM")
+				return []byte("histogram")
 			case pmetric.MetricTypeExponentialHistogram:
-				return []byte("METRIC_TYPE_EXPONENTIAL_HISTOGRAM")
+				return []byte("exponential_histogram")
 			case pmetric.MetricTypeSummary:
-				return []byte("METRIC_TYPE_SUMMARY")
+				return []byte("summary")
 			default:
 				return nil
 			}
 		case policy.MetricFieldAggregationTemporality:
 			switch ctx.AggregationTemporality {
 			case pmetric.AggregationTemporalityDelta:
-				return []byte("AGGREGATION_TEMPORALITY_DELTA")
+				return []byte("delta")
 			case pmetric.AggregationTemporalityCumulative:
-				return []byte("AGGREGATION_TEMPORALITY_CUMULATIVE")
+				return []byte("cumulative")
 			default:
-				return []byte("AGGREGATION_TEMPORALITY_UNSPECIFIED")
+				return nil
 			}
 		case policy.MetricFieldScopeName:
 			if name := ctx.Scope.Name(); name != "" {
