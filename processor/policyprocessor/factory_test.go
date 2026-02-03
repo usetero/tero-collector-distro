@@ -278,14 +278,13 @@ func TestProcessLogs_Drop(t *testing.T) {
 		t.Fatalf("ConsumeLogs() error: %v", err)
 	}
 
-	// Log batch is sent but should have 0 records
+	// Log batch is sent but should have 0 resource logs (all dropped)
 	if len(sink.AllLogs()) != 1 {
 		t.Fatalf("expected 1 log batch, got %d", len(sink.AllLogs()))
 	}
 
 	logs := sink.AllLogs()[0]
-	recordCount := logs.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().Len()
-	if recordCount != 0 {
-		t.Errorf("expected 0 log records (dropped), got %d", recordCount)
+	if logs.ResourceLogs().Len() != 0 {
+		t.Errorf("expected 0 resource logs (all dropped), got %d", logs.ResourceLogs().Len())
 	}
 }

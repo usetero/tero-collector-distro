@@ -51,7 +51,7 @@ func createTracesProcessor(
 		cfg,
 		nextConsumer,
 		proc.processTraces,
-		processorhelper.WithCapabilities(consumer.Capabilities{MutatesData: false}),
+		processorhelper.WithCapabilities(consumer.Capabilities{MutatesData: true}),
 		processorhelper.WithStart(proc.start),
 		processorhelper.WithShutdown(proc.shutdown),
 	)
@@ -76,7 +76,7 @@ func createMetricsProcessor(
 		cfg,
 		nextConsumer,
 		proc.processMetrics,
-		processorhelper.WithCapabilities(consumer.Capabilities{MutatesData: false}),
+		processorhelper.WithCapabilities(consumer.Capabilities{MutatesData: true}),
 		processorhelper.WithStart(proc.start),
 		processorhelper.WithShutdown(proc.shutdown),
 	)
