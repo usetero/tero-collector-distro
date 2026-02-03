@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/usetero/tero-collector-distro/compare/v0.3.0...v0.4.0) (2026-02-03)
+
+
+### Features
+
+* add spanmetric support ([#19](https://github.com/usetero/tero-collector-distro/issues/19)) ([3b5526c](https://github.com/usetero/tero-collector-distro/commit/3b5526c8812199e9f2bad51c00ead12e7006883f))
+
 ## [0.3.0](https://github.com/usetero/tero-collector-distro/compare/v0.2.1...v0.3.0) (2026-01-30)
 
 
