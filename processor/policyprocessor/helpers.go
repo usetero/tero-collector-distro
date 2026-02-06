@@ -24,7 +24,7 @@ func traversePath(attrs pcommon.Map, path []string) []byte {
 }
 
 // getNestedAttr retrieves a string value at a nested attribute path.
-func getNestedAttr(attrs *pcommon.Map, path []string) (string, bool) {
+func getNestedAttr(attrs pcommon.Map, path []string) (string, bool) {
 	if len(path) == 0 {
 		return "", false
 	}
@@ -41,12 +41,11 @@ func getNestedAttr(attrs *pcommon.Map, path []string) (string, bool) {
 	if val.Type() != pcommon.ValueTypeMap {
 		return "", false
 	}
-	m := val.Map()
-	return getNestedAttr(&m, path[1:])
+	return getNestedAttr(val.Map(), path[1:])
 }
 
 // removeNestedAttr removes an attribute at a nested path. Returns true if it existed.
-func removeNestedAttr(attrs *pcommon.Map, path []string) bool {
+func removeNestedAttr(attrs pcommon.Map, path []string) bool {
 	if len(path) == 0 {
 		return false
 	}
@@ -63,12 +62,11 @@ func removeNestedAttr(attrs *pcommon.Map, path []string) bool {
 	if !ok || val.Type() != pcommon.ValueTypeMap {
 		return false
 	}
-	m := val.Map()
-	return removeNestedAttr(&m, path[1:])
+	return removeNestedAttr(val.Map(), path[1:])
 }
 
 // setNestedAttr sets a string value at a nested path. Returns true if the path existed before.
-func setNestedAttr(attrs *pcommon.Map, path []string, value string) bool {
+func setNestedAttr(attrs pcommon.Map, path []string, value string) bool {
 	if len(path) == 0 {
 		return false
 	}
@@ -83,12 +81,11 @@ func setNestedAttr(attrs *pcommon.Map, path []string, value string) bool {
 	if !ok || val.Type() != pcommon.ValueTypeMap {
 		return false
 	}
-	m := val.Map()
-	return setNestedAttr(&m, path[1:], value)
+	return setNestedAttr(val.Map(), path[1:], value)
 }
 
 // putNestedAttr sets a string value at a nested path, creating intermediate maps if needed.
-func putNestedAttr(attrs *pcommon.Map, path []string, value string) {
+func putNestedAttr(attrs pcommon.Map, path []string, value string) {
 	if len(path) == 0 {
 		return
 	}
@@ -100,12 +97,10 @@ func putNestedAttr(attrs *pcommon.Map, path []string, value string) {
 
 	val, ok := attrs.Get(path[0])
 	if !ok || val.Type() != pcommon.ValueTypeMap {
-		nested := attrs.PutEmptyMap(path[0])
-		putNestedAttr(&nested, path[1:], value)
+		putNestedAttr(attrs.PutEmptyMap(path[0]), path[1:], value)
 		return
 	}
-	m := val.Map()
-	putNestedAttr(&m, path[1:], value)
+	putNestedAttr(val.Map(), path[1:], value)
 }
 
 func valueToBytes(val pcommon.Value) []byte {

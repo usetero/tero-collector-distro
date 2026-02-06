@@ -231,6 +231,8 @@ func (p *policyProcessor) processSummaryDataPoints(ctx context.Context, m pmetri
 }
 
 func (p *policyProcessor) processLogs(ctx context.Context, ld plog.Logs) (plog.Logs, error) {
+	transformOpt := policy.WithLogTransform(LogTransformer)
+
 	ld.ResourceLogs().RemoveIf(func(rl plog.ResourceLogs) bool {
 		resource := rl.Resource()
 
@@ -244,7 +246,7 @@ func (p *policyProcessor) processLogs(ctx context.Context, ld plog.Logs) (plog.L
 					Scope:    scope,
 				}
 
-				result := policy.EvaluateLog(p.engine, logCtx, LogMatcher, policy.WithLogTransform(LogTransformer))
+				result := policy.EvaluateLog(p.engine, logCtx, LogMatcher, transformOpt)
 				p.recordMetric(ctx, "logs", result)
 
 				return result == policy.ResultDrop

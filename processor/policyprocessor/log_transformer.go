@@ -49,8 +49,8 @@ func logRemove(ctx LogContext, ref policy.LogFieldRef) bool {
 		return false
 	}
 
-	attrs := logAttrs(ctx, ref)
-	if attrs == nil {
+	attrs, ok := logAttrs(ctx, ref)
+	if !ok {
 		return false
 	}
 	_, exists := attrs.Get(ref.AttrPath[0])
@@ -83,8 +83,8 @@ func logRedact(ctx LogContext, ref policy.LogFieldRef, replacement string) bool 
 		return false
 	}
 
-	attrs := logAttrs(ctx, ref)
-	if attrs == nil {
+	attrs, ok := logAttrs(ctx, ref)
+	if !ok {
 		return false
 	}
 	return setNestedAttr(attrs, ref.AttrPath, replacement)
@@ -95,8 +95,8 @@ func logRename(ctx LogContext, ref policy.LogFieldRef, to string, upsert bool) b
 		return false
 	}
 
-	attrs := logAttrs(ctx, ref)
-	if attrs == nil {
+	attrs, ok := logAttrs(ctx, ref)
+	if !ok {
 		return false
 	}
 
@@ -141,8 +141,8 @@ func logAdd(ctx LogContext, ref policy.LogFieldRef, value string, upsert bool) b
 		return false
 	}
 
-	attrs := logAttrs(ctx, ref)
-	if attrs == nil {
+	attrs, ok := logAttrs(ctx, ref)
+	if !ok {
 		return false
 	}
 
@@ -157,18 +157,16 @@ func logAdd(ctx LogContext, ref policy.LogFieldRef, value string, upsert bool) b
 }
 
 // logAttrs returns the attribute map for the given field ref scope.
-func logAttrs(ctx LogContext, ref policy.LogFieldRef) *pcommon.Map {
+// Returns the map by value (pcommon.Map is a lightweight handle) to avoid heap allocation.
+func logAttrs(ctx LogContext, ref policy.LogFieldRef) (pcommon.Map, bool) {
 	switch {
 	case ref.IsRecordAttr():
-		m := ctx.Record.Attributes()
-		return &m
+		return ctx.Record.Attributes(), true
 	case ref.IsResourceAttr():
-		m := ctx.Resource.Attributes()
-		return &m
+		return ctx.Resource.Attributes(), true
 	case ref.IsScopeAttr():
-		m := ctx.Scope.Attributes()
-		return &m
+		return ctx.Scope.Attributes(), true
 	default:
-		return nil
+		return pcommon.Map{}, false
 	}
 }
