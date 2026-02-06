@@ -61,8 +61,8 @@ github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
-github.com/usetero/policy-go v1.2.1-0.20260202194130-38959ef84d9f h1:qUgXmsJhS1Aw5aH4S5a5nZ0z8AgD9VUsYyuD0nh6ReE=
-github.com/usetero/policy-go v1.2.1-0.20260202194130-38959ef84d9f/go.mod h1:tFtx5VEgt9yTBN8ac85U3tsSZNqtfPhw4/8mAboG278=
+github.com/usetero/policy-go v1.3.0 h1:MeiJa/1M6wdLUgYLH50vO+OY71vRz/sg02BmX7yZ49c=
+github.com/usetero/policy-go v1.3.0/go.mod h1:tFtx5VEgt9yTBN8ac85U3tsSZNqtfPhw4/8mAboG278=
 go.opentelemetry.io/auto/sdk v1.2.1 h1:jXsnJ4Lmnqd11kwkBV2LgLoFMZKizbCi5fNZ/ipaZ64=
 go.opentelemetry.io/auto/sdk v1.2.1/go.mod h1:KRTj+aOaElaLi+wW1kO/DZRXwkF4C5xPbEe3ZiIhN7Y=
 go.opentelemetry.io/collector/component v1.50.1-0.20260121161034-55399d4743af h1:kV5WsN1wEGnUGmpMUobvGO4L7Hxj03JYNyStu2NANdA=

@@ -40,6 +40,7 @@ attributes:
       - kept
       - no_match
       - sampled
+      - transformed
   telemetry_type:
     description: The type of telemetry (logs, metrics, traces)
     type: string
