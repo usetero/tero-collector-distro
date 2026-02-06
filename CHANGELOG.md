@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/usetero/tero-collector-distro/compare/v0.4.0...v0.5.0) (2026-02-06)
+
+
+### Features
+
+* upgrade distro with log transforms ([#21](https://github.com/usetero/tero-collector-distro/issues/21)) ([3766680](https://github.com/usetero/tero-collector-distro/commit/3766680e994dcb18fe01947d1371f4b33ff12ce4))
+
 ## [0.4.0](https://github.com/usetero/tero-collector-distro/compare/v0.3.0...v0.4.0) (2026-02-03)
 
 
