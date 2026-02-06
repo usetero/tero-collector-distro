@@ -39,6 +39,7 @@ processors:
     path: /build/processor/policyprocessor
 receivers:
   - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver v0.144.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/datadogreceiver v0.144.0
 connectors:
   - gomod: go.opentelemetry.io/collector/connector/forwardconnector v0.144.0
 providers:

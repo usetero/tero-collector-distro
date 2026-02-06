@@ -201,6 +201,361 @@ func BenchmarkLogs_MultiplePolicies(b *testing.B) {
 }
 
 // =============================================================================
+// LOG TRANSFORM BENCHMARKS
+// =============================================================================
+
+func generateLogsForTransform(numResources, numScopes, numRecords int) plog.Logs {
+	logs := plog.NewLogs()
+	for r := range numResources {
+		rl := logs.ResourceLogs().AppendEmpty()
+		rl.Resource().Attributes().PutStr("service.name", fmt.Sprintf("service-%d", r))
+		rl.Resource().Attributes().PutStr("host.name", fmt.Sprintf("host-%d", r))
+
+		for s := range numScopes {
+			sl := rl.ScopeLogs().AppendEmpty()
+			sl.Scope().SetName(fmt.Sprintf("scope-%d", s))
+			sl.Scope().Attributes().PutStr("scope.env", "production")
+
+			for l := range numRecords {
+				lr := sl.LogRecords().AppendEmpty()
+				lr.Body().SetStr(fmt.Sprintf("Log message %d from resource %d scope %d", l, r, s))
+				lr.SetSeverityText("INFO")
+				lr.Attributes().PutStr("log.level", "info")
+				lr.Attributes().PutStr("api_key", "secret-key-123")
+				lr.Attributes().PutStr("user.email", "user@example.com")
+				lr.Attributes().PutStr("old_name", "some-value")
+				lr.Attributes().PutInt("log.index", int64(l))
+			}
+		}
+	}
+	return logs
+}
+
+func logTransformSlice(count int) []plog.Logs {
+	out := make([]plog.Logs, count)
+	for i := range count {
+		out[i] = generateLogsForTransform(2, 2, 2)
+	}
+	return out
+}
+
+func benchmarkLogTransform(b *testing.B, policies []*policyv1.Policy) {
+	p := createBenchmarkProcessor(b, policies)
+	ctx := context.Background()
+	logs := logTransformSlice(128)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for b.Loop() {
+		for _, l := range logs {
+			_, _ = p.processLogs(ctx, l)
+		}
+	}
+}
+
+func BenchmarkLogs_TransformRemove(b *testing.B) {
+	policies := []*policyv1.Policy{
+		{
+			Id:   "remove-secret",
+			Name: "Remove Secret",
+			Target: &policyv1.Policy_Log{
+				Log: &policyv1.LogTarget{
+					Match: []*policyv1.LogMatcher{
+						{
+							Field: &policyv1.LogMatcher_LogField{LogField: policyv1.LogField_LOG_FIELD_SEVERITY_TEXT},
+							Match: &policyv1.LogMatcher_Exact{Exact: "INFO"},
+						},
+					},
+					Keep: "all",
+					Transform: &policyv1.LogTransform{
+						Remove: []*policyv1.LogRemove{
+							{
+								Field: &policyv1.LogRemove_LogAttribute{
+									LogAttribute: &policyv1.AttributePath{Path: []string{"api_key"}},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	benchmarkLogTransform(b, policies)
+}
+
+func BenchmarkLogs_TransformRedact(b *testing.B) {
+	policies := []*policyv1.Policy{
+		{
+			Id:   "redact-email",
+			Name: "Redact Email",
+			Target: &policyv1.Policy_Log{
+				Log: &policyv1.LogTarget{
+					Match: []*policyv1.LogMatcher{
+						{
+							Field: &policyv1.LogMatcher_LogField{LogField: policyv1.LogField_LOG_FIELD_SEVERITY_TEXT},
+							Match: &policyv1.LogMatcher_Exact{Exact: "INFO"},
+						},
+					},
+					Keep: "all",
+					Transform: &policyv1.LogTransform{
+						Redact: []*policyv1.LogRedact{
+							{
+								Field: &policyv1.LogRedact_LogAttribute{
+									LogAttribute: &policyv1.AttributePath{Path: []string{"user.email"}},
+								},
+								Replacement: "[REDACTED]",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	benchmarkLogTransform(b, policies)
+}
+
+func BenchmarkLogs_TransformRename(b *testing.B) {
+	policies := []*policyv1.Policy{
+		{
+			Id:   "rename-attr",
+			Name: "Rename Attribute",
+			Target: &policyv1.Policy_Log{
+				Log: &policyv1.LogTarget{
+					Match: []*policyv1.LogMatcher{
+						{
+							Field: &policyv1.LogMatcher_LogField{LogField: policyv1.LogField_LOG_FIELD_SEVERITY_TEXT},
+							Match: &policyv1.LogMatcher_Exact{Exact: "INFO"},
+						},
+					},
+					Keep: "all",
+					Transform: &policyv1.LogTransform{
+						Rename: []*policyv1.LogRename{
+							{
+								From: &policyv1.LogRename_FromLogAttribute{
+									FromLogAttribute: &policyv1.AttributePath{Path: []string{"old_name"}},
+								},
+								To:     "new_name",
+								Upsert: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	benchmarkLogTransform(b, policies)
+}
+
+func BenchmarkLogs_TransformAdd(b *testing.B) {
+	policies := []*policyv1.Policy{
+		{
+			Id:   "add-env",
+			Name: "Add Environment",
+			Target: &policyv1.Policy_Log{
+				Log: &policyv1.LogTarget{
+					Match: []*policyv1.LogMatcher{
+						{
+							Field: &policyv1.LogMatcher_LogField{LogField: policyv1.LogField_LOG_FIELD_SEVERITY_TEXT},
+							Match: &policyv1.LogMatcher_Exact{Exact: "INFO"},
+						},
+					},
+					Keep: "all",
+					Transform: &policyv1.LogTransform{
+						Add: []*policyv1.LogAdd{
+							{
+								Field: &policyv1.LogAdd_LogAttribute{
+									LogAttribute: &policyv1.AttributePath{Path: []string{"env"}},
+								},
+								Value:  "production",
+								Upsert: false,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	benchmarkLogTransform(b, policies)
+}
+
+func BenchmarkLogs_TransformAllOps(b *testing.B) {
+	policies := []*policyv1.Policy{
+		{
+			Id:   "all-transforms",
+			Name: "All Transforms",
+			Target: &policyv1.Policy_Log{
+				Log: &policyv1.LogTarget{
+					Match: []*policyv1.LogMatcher{
+						{
+							Field: &policyv1.LogMatcher_LogField{LogField: policyv1.LogField_LOG_FIELD_SEVERITY_TEXT},
+							Match: &policyv1.LogMatcher_Exact{Exact: "INFO"},
+						},
+					},
+					Keep: "all",
+					Transform: &policyv1.LogTransform{
+						Remove: []*policyv1.LogRemove{
+							{
+								Field: &policyv1.LogRemove_LogAttribute{
+									LogAttribute: &policyv1.AttributePath{Path: []string{"api_key"}},
+								},
+							},
+						},
+						Redact: []*policyv1.LogRedact{
+							{
+								Field: &policyv1.LogRedact_LogAttribute{
+									LogAttribute: &policyv1.AttributePath{Path: []string{"user.email"}},
+								},
+								Replacement: "[REDACTED]",
+							},
+						},
+						Rename: []*policyv1.LogRename{
+							{
+								From: &policyv1.LogRename_FromLogAttribute{
+									FromLogAttribute: &policyv1.AttributePath{Path: []string{"old_name"}},
+								},
+								To:     "new_name",
+								Upsert: true,
+							},
+						},
+						Add: []*policyv1.LogAdd{
+							{
+								Field: &policyv1.LogAdd_LogAttribute{
+									LogAttribute: &policyv1.AttributePath{Path: []string{"env"}},
+								},
+								Value:  "production",
+								Upsert: false,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	benchmarkLogTransform(b, policies)
+}
+
+func BenchmarkLogs_TransformMultipleRedacts(b *testing.B) {
+	policies := []*policyv1.Policy{
+		{
+			Id:   "multi-redact",
+			Name: "Multiple Redacts",
+			Target: &policyv1.Policy_Log{
+				Log: &policyv1.LogTarget{
+					Match: []*policyv1.LogMatcher{
+						{
+							Field: &policyv1.LogMatcher_LogField{LogField: policyv1.LogField_LOG_FIELD_SEVERITY_TEXT},
+							Match: &policyv1.LogMatcher_Exact{Exact: "INFO"},
+						},
+					},
+					Keep: "all",
+					Transform: &policyv1.LogTransform{
+						Redact: []*policyv1.LogRedact{
+							{
+								Field: &policyv1.LogRedact_LogAttribute{
+									LogAttribute: &policyv1.AttributePath{Path: []string{"api_key"}},
+								},
+								Replacement: "[REDACTED]",
+							},
+							{
+								Field: &policyv1.LogRedact_LogAttribute{
+									LogAttribute: &policyv1.AttributePath{Path: []string{"user.email"}},
+								},
+								Replacement: "[REDACTED]",
+							},
+							{
+								Field: &policyv1.LogRedact_LogField{
+									LogField: policyv1.LogField_LOG_FIELD_BODY,
+								},
+								Replacement: "[REDACTED]",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	benchmarkLogTransform(b, policies)
+}
+
+func BenchmarkLogs_TransformResourceAndScopeAttrs(b *testing.B) {
+	policies := []*policyv1.Policy{
+		{
+			Id:   "cross-scope",
+			Name: "Cross Scope Transforms",
+			Target: &policyv1.Policy_Log{
+				Log: &policyv1.LogTarget{
+					Match: []*policyv1.LogMatcher{
+						{
+							Field: &policyv1.LogMatcher_LogField{LogField: policyv1.LogField_LOG_FIELD_SEVERITY_TEXT},
+							Match: &policyv1.LogMatcher_Exact{Exact: "INFO"},
+						},
+					},
+					Keep: "all",
+					Transform: &policyv1.LogTransform{
+						Redact: []*policyv1.LogRedact{
+							{
+								Field: &policyv1.LogRedact_ResourceAttribute{
+									ResourceAttribute: &policyv1.AttributePath{Path: []string{"host.name"}},
+								},
+								Replacement: "[REDACTED]",
+							},
+							{
+								Field: &policyv1.LogRedact_ScopeAttribute{
+									ScopeAttribute: &policyv1.AttributePath{Path: []string{"scope.env"}},
+								},
+								Replacement: "[REDACTED]",
+							},
+						},
+						Add: []*policyv1.LogAdd{
+							{
+								Field: &policyv1.LogAdd_ResourceAttribute{
+									ResourceAttribute: &policyv1.AttributePath{Path: []string{"processed"}},
+								},
+								Value:  "true",
+								Upsert: false,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	benchmarkLogTransform(b, policies)
+}
+
+func BenchmarkLogs_TransformNoMatch(b *testing.B) {
+	policies := []*policyv1.Policy{
+		{
+			Id:   "no-match-transform",
+			Name: "Transform No Match",
+			Target: &policyv1.Policy_Log{
+				Log: &policyv1.LogTarget{
+					Match: []*policyv1.LogMatcher{
+						{
+							Field: &policyv1.LogMatcher_LogField{LogField: policyv1.LogField_LOG_FIELD_SEVERITY_TEXT},
+							Match: &policyv1.LogMatcher_Exact{Exact: "DEBUG"},
+						},
+					},
+					Keep: "all",
+					Transform: &policyv1.LogTransform{
+						Redact: []*policyv1.LogRedact{
+							{
+								Field: &policyv1.LogRedact_LogAttribute{
+									LogAttribute: &policyv1.AttributePath{Path: []string{"api_key"}},
+								},
+								Replacement: "[REDACTED]",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	benchmarkLogTransform(b, policies)
+}
+
+// =============================================================================
 // METRICS BENCHMARKS
 // =============================================================================
 
