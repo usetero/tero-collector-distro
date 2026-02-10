@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/usetero/tero-collector-distro/compare/v0.5.0...v0.5.1) (2026-02-10)
+
+
+### Bug Fixes
+
+* add health_check extension ([#24](https://github.com/usetero/tero-collector-distro/issues/24)) ([401bd66](https://github.com/usetero/tero-collector-distro/commit/401bd66d79ade7cf9a497d50cf54dbe10f4aa3ae))
+
 ## [0.5.0](https://github.com/usetero/tero-collector-distro/compare/v0.4.0...v0.5.0) (2026-02-10)
 
 
