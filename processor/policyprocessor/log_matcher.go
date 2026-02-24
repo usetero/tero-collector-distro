@@ -1,8 +1,6 @@
 package policyprocessor
 
 import (
-	"encoding/hex"
-
 	"github.com/usetero/policy-go"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
@@ -10,9 +8,11 @@ import (
 
 // LogContext holds the context needed to evaluate a log record against policies.
 type LogContext struct {
-	Record   plog.LogRecord
-	Resource pcommon.Resource
-	Scope    pcommon.InstrumentationScope
+	Record            plog.LogRecord
+	Resource          pcommon.Resource
+	Scope             pcommon.InstrumentationScope
+	ResourceSchemaURL string
+	ScopeSchemaURL    string
 }
 
 // LogMatcher extracts field values from a LogContext for policy evaluation.
@@ -32,22 +32,28 @@ func LogMatcher(ctx LogContext, ref policy.LogFieldRef) []byte {
 			if traceID.IsEmpty() {
 				return nil
 			}
-			buf := make([]byte, 32)
-			hex.Encode(buf, traceID[:])
-			return buf
+			return traceID[:]
 		case policy.LogFieldSpanID:
 			spanID := ctx.Record.SpanID()
 			if spanID.IsEmpty() {
 				return nil
 			}
-			buf := make([]byte, 16)
-			hex.Encode(buf, spanID[:])
-			return buf
+			return spanID[:]
 		case policy.LogFieldEventName:
 			if name := ctx.Record.EventName(); name != "" {
 				return []byte(name)
 			}
 			return nil
+		case policy.LogFieldResourceSchemaURL:
+			if ctx.ResourceSchemaURL == "" {
+				return nil
+			}
+			return []byte(ctx.ResourceSchemaURL)
+		case policy.LogFieldScopeSchemaURL:
+			if ctx.ScopeSchemaURL == "" {
+				return nil
+			}
+			return []byte(ctx.ScopeSchemaURL)
 		default:
 			return nil
 		}

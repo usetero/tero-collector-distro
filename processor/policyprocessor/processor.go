@@ -87,20 +87,26 @@ func (p *policyProcessor) shutdown(_ context.Context) error {
 }
 
 func (p *policyProcessor) processTraces(ctx context.Context, td ptrace.Traces) (ptrace.Traces, error) {
+	transformOpt := policy.WithTraceTransform(TraceTransformer)
+
 	td.ResourceSpans().RemoveIf(func(rs ptrace.ResourceSpans) bool {
 		resource := rs.Resource()
+		resourceSchemaURL := rs.SchemaUrl()
 
 		rs.ScopeSpans().RemoveIf(func(ss ptrace.ScopeSpans) bool {
 			scope := ss.Scope()
+			scopeSchemaURL := ss.SchemaUrl()
 
 			ss.Spans().RemoveIf(func(span ptrace.Span) bool {
 				traceCtx := TraceContext{
-					Span:     span,
-					Resource: resource,
-					Scope:    scope,
+					Span:              span,
+					Resource:          resource,
+					Scope:             scope,
+					ResourceSchemaURL: resourceSchemaURL,
+					ScopeSchemaURL:    scopeSchemaURL,
 				}
 
-				result := policy.EvaluateTrace(p.engine, traceCtx, TraceMatcher)
+				result := policy.EvaluateTrace(p.engine, traceCtx, TraceMatcher, transformOpt)
 				p.recordMetric(ctx, "traces", result)
 
 				return result == policy.ResultDrop
@@ -118,12 +124,14 @@ func (p *policyProcessor) processTraces(ctx context.Context, td ptrace.Traces) (
 func (p *policyProcessor) processMetrics(ctx context.Context, md pmetric.Metrics) (pmetric.Metrics, error) {
 	md.ResourceMetrics().RemoveIf(func(rm pmetric.ResourceMetrics) bool {
 		resource := rm.Resource()
+		resourceSchemaURL := rm.SchemaUrl()
 
 		rm.ScopeMetrics().RemoveIf(func(sm pmetric.ScopeMetrics) bool {
 			scope := sm.Scope()
+			scopeSchemaURL := sm.SchemaUrl()
 
 			sm.Metrics().RemoveIf(func(m pmetric.Metric) bool {
-				return p.processMetricDatapoints(ctx, m, resource, scope)
+				return p.processMetricDatapoints(ctx, m, resource, scope, resourceSchemaURL, scopeSchemaURL)
 			})
 
 			return sm.Metrics().Len() == 0
@@ -137,32 +145,32 @@ func (p *policyProcessor) processMetrics(ctx context.Context, md pmetric.Metrics
 
 // processMetricDatapoints evaluates all datapoints in a metric and removes dropped ones.
 // Returns true if the entire metric should be dropped (all datapoints were dropped).
-func (p *policyProcessor) processMetricDatapoints(ctx context.Context, m pmetric.Metric, resource pcommon.Resource, scope pcommon.InstrumentationScope) bool {
+func (p *policyProcessor) processMetricDatapoints(ctx context.Context, m pmetric.Metric, resource pcommon.Resource, scope pcommon.InstrumentationScope, resourceSchemaURL, scopeSchemaURL string) bool {
 	switch m.Type() {
 	case pmetric.MetricTypeGauge:
-		p.processNumberDataPoints(ctx, m, m.Gauge().DataPoints(), pmetric.AggregationTemporalityUnspecified, resource, scope)
+		p.processNumberDataPoints(ctx, m, m.Gauge().DataPoints(), pmetric.AggregationTemporalityUnspecified, resource, scope, resourceSchemaURL, scopeSchemaURL)
 		return m.Gauge().DataPoints().Len() == 0
 	case pmetric.MetricTypeSum:
 		sum := m.Sum()
-		p.processNumberDataPoints(ctx, m, sum.DataPoints(), sum.AggregationTemporality(), resource, scope)
+		p.processNumberDataPoints(ctx, m, sum.DataPoints(), sum.AggregationTemporality(), resource, scope, resourceSchemaURL, scopeSchemaURL)
 		return sum.DataPoints().Len() == 0
 	case pmetric.MetricTypeHistogram:
 		hist := m.Histogram()
-		p.processHistogramDataPoints(ctx, m, hist.DataPoints(), hist.AggregationTemporality(), resource, scope)
+		p.processHistogramDataPoints(ctx, m, hist.DataPoints(), hist.AggregationTemporality(), resource, scope, resourceSchemaURL, scopeSchemaURL)
 		return hist.DataPoints().Len() == 0
 	case pmetric.MetricTypeExponentialHistogram:
 		expHist := m.ExponentialHistogram()
-		p.processExponentialHistogramDataPoints(ctx, m, expHist.DataPoints(), expHist.AggregationTemporality(), resource, scope)
+		p.processExponentialHistogramDataPoints(ctx, m, expHist.DataPoints(), expHist.AggregationTemporality(), resource, scope, resourceSchemaURL, scopeSchemaURL)
 		return expHist.DataPoints().Len() == 0
 	case pmetric.MetricTypeSummary:
-		p.processSummaryDataPoints(ctx, m, m.Summary().DataPoints(), resource, scope)
+		p.processSummaryDataPoints(ctx, m, m.Summary().DataPoints(), resource, scope, resourceSchemaURL, scopeSchemaURL)
 		return m.Summary().DataPoints().Len() == 0
 	default:
 		return false
 	}
 }
 
-func (p *policyProcessor) processNumberDataPoints(ctx context.Context, m pmetric.Metric, datapoints pmetric.NumberDataPointSlice, temporality pmetric.AggregationTemporality, resource pcommon.Resource, scope pcommon.InstrumentationScope) {
+func (p *policyProcessor) processNumberDataPoints(ctx context.Context, m pmetric.Metric, datapoints pmetric.NumberDataPointSlice, temporality pmetric.AggregationTemporality, resource pcommon.Resource, scope pcommon.InstrumentationScope, resourceSchemaURL, scopeSchemaURL string) {
 	datapoints.RemoveIf(func(dp pmetric.NumberDataPoint) bool {
 		metricCtx := MetricContext{
 			Metric:                 m,
@@ -170,6 +178,8 @@ func (p *policyProcessor) processNumberDataPoints(ctx context.Context, m pmetric
 			AggregationTemporality: temporality,
 			Resource:               resource,
 			Scope:                  scope,
+			ResourceSchemaURL:      resourceSchemaURL,
+			ScopeSchemaURL:         scopeSchemaURL,
 		}
 
 		result := policy.EvaluateMetric(p.engine, metricCtx, MetricMatcher)
@@ -179,7 +189,7 @@ func (p *policyProcessor) processNumberDataPoints(ctx context.Context, m pmetric
 	})
 }
 
-func (p *policyProcessor) processHistogramDataPoints(ctx context.Context, m pmetric.Metric, datapoints pmetric.HistogramDataPointSlice, temporality pmetric.AggregationTemporality, resource pcommon.Resource, scope pcommon.InstrumentationScope) {
+func (p *policyProcessor) processHistogramDataPoints(ctx context.Context, m pmetric.Metric, datapoints pmetric.HistogramDataPointSlice, temporality pmetric.AggregationTemporality, resource pcommon.Resource, scope pcommon.InstrumentationScope, resourceSchemaURL, scopeSchemaURL string) {
 	datapoints.RemoveIf(func(dp pmetric.HistogramDataPoint) bool {
 		metricCtx := MetricContext{
 			Metric:                 m,
@@ -187,6 +197,8 @@ func (p *policyProcessor) processHistogramDataPoints(ctx context.Context, m pmet
 			AggregationTemporality: temporality,
 			Resource:               resource,
 			Scope:                  scope,
+			ResourceSchemaURL:      resourceSchemaURL,
+			ScopeSchemaURL:         scopeSchemaURL,
 		}
 
 		result := policy.EvaluateMetric(p.engine, metricCtx, MetricMatcher)
@@ -196,7 +208,7 @@ func (p *policyProcessor) processHistogramDataPoints(ctx context.Context, m pmet
 	})
 }
 
-func (p *policyProcessor) processExponentialHistogramDataPoints(ctx context.Context, m pmetric.Metric, datapoints pmetric.ExponentialHistogramDataPointSlice, temporality pmetric.AggregationTemporality, resource pcommon.Resource, scope pcommon.InstrumentationScope) {
+func (p *policyProcessor) processExponentialHistogramDataPoints(ctx context.Context, m pmetric.Metric, datapoints pmetric.ExponentialHistogramDataPointSlice, temporality pmetric.AggregationTemporality, resource pcommon.Resource, scope pcommon.InstrumentationScope, resourceSchemaURL, scopeSchemaURL string) {
 	datapoints.RemoveIf(func(dp pmetric.ExponentialHistogramDataPoint) bool {
 		metricCtx := MetricContext{
 			Metric:                 m,
@@ -204,6 +216,8 @@ func (p *policyProcessor) processExponentialHistogramDataPoints(ctx context.Cont
 			AggregationTemporality: temporality,
 			Resource:               resource,
 			Scope:                  scope,
+			ResourceSchemaURL:      resourceSchemaURL,
+			ScopeSchemaURL:         scopeSchemaURL,
 		}
 
 		result := policy.EvaluateMetric(p.engine, metricCtx, MetricMatcher)
@@ -213,7 +227,7 @@ func (p *policyProcessor) processExponentialHistogramDataPoints(ctx context.Cont
 	})
 }
 
-func (p *policyProcessor) processSummaryDataPoints(ctx context.Context, m pmetric.Metric, datapoints pmetric.SummaryDataPointSlice, resource pcommon.Resource, scope pcommon.InstrumentationScope) {
+func (p *policyProcessor) processSummaryDataPoints(ctx context.Context, m pmetric.Metric, datapoints pmetric.SummaryDataPointSlice, resource pcommon.Resource, scope pcommon.InstrumentationScope, resourceSchemaURL, scopeSchemaURL string) {
 	datapoints.RemoveIf(func(dp pmetric.SummaryDataPoint) bool {
 		metricCtx := MetricContext{
 			Metric:                 m,
@@ -221,6 +235,8 @@ func (p *policyProcessor) processSummaryDataPoints(ctx context.Context, m pmetri
 			AggregationTemporality: pmetric.AggregationTemporalityUnspecified,
 			Resource:               resource,
 			Scope:                  scope,
+			ResourceSchemaURL:      resourceSchemaURL,
+			ScopeSchemaURL:         scopeSchemaURL,
 		}
 
 		result := policy.EvaluateMetric(p.engine, metricCtx, MetricMatcher)
@@ -235,15 +251,19 @@ func (p *policyProcessor) processLogs(ctx context.Context, ld plog.Logs) (plog.L
 
 	ld.ResourceLogs().RemoveIf(func(rl plog.ResourceLogs) bool {
 		resource := rl.Resource()
+		resourceSchemaURL := rl.SchemaUrl()
 
 		rl.ScopeLogs().RemoveIf(func(sl plog.ScopeLogs) bool {
 			scope := sl.Scope()
+			scopeSchemaURL := sl.SchemaUrl()
 
 			sl.LogRecords().RemoveIf(func(lr plog.LogRecord) bool {
 				logCtx := LogContext{
-					Record:   lr,
-					Resource: resource,
-					Scope:    scope,
+					Record:            lr,
+					Resource:          resource,
+					Scope:             scope,
+					ResourceSchemaURL: resourceSchemaURL,
+					ScopeSchemaURL:    scopeSchemaURL,
 				}
 
 				result := policy.EvaluateLog(p.engine, logCtx, LogMatcher, transformOpt)

@@ -13,6 +13,8 @@ type MetricContext struct {
 	AggregationTemporality pmetric.AggregationTemporality
 	Resource               pcommon.Resource
 	Scope                  pcommon.InstrumentationScope
+	ResourceSchemaURL      string
+	ScopeSchemaURL         string
 }
 
 // MetricMatcher extracts field values from a MetricContext for policy evaluation.
@@ -69,6 +71,16 @@ func MetricMatcher(ctx MetricContext, ref policy.MetricFieldRef) []byte {
 				return []byte(version)
 			}
 			return nil
+		case policy.MetricFieldResourceSchemaURL:
+			if ctx.ResourceSchemaURL == "" {
+				return nil
+			}
+			return []byte(ctx.ResourceSchemaURL)
+		case policy.MetricFieldScopeSchemaURL:
+			if ctx.ScopeSchemaURL == "" {
+				return nil
+			}
+			return []byte(ctx.ScopeSchemaURL)
 		default:
 			return nil
 		}
