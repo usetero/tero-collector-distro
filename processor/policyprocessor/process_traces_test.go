@@ -80,6 +80,7 @@ func TestProcessTraces_DropByName(t *testing.T) {
 		{
 			Id:   "drop-internal",
 			Name: "Drop Internal",
+			Enabled: true,
 			Target: &policyv1.Policy_Trace{
 				Trace: &policyv1.TraceTarget{
 					Match: []*policyv1.TraceMatcher{
@@ -120,6 +121,7 @@ func TestProcessTraces_DropBySpanKind(t *testing.T) {
 		{
 			Id:   "drop-internal-kind",
 			Name: "Drop Internal Kind",
+			Enabled: true,
 			Target: &policyv1.Policy_Trace{
 				Trace: &policyv1.TraceTarget{
 					Match: []*policyv1.TraceMatcher{
@@ -163,6 +165,7 @@ func TestProcessTraces_DropByStatus(t *testing.T) {
 		{
 			Id:   "drop-errors",
 			Name: "Drop Errors",
+			Enabled: true,
 			Target: &policyv1.Policy_Trace{
 				Trace: &policyv1.TraceTarget{
 					Match: []*policyv1.TraceMatcher{
@@ -206,6 +209,7 @@ func TestProcessTraces_DropBySpanAttribute(t *testing.T) {
 		{
 			Id:   "drop-by-method",
 			Name: "Drop By Method",
+			Enabled: true,
 			Target: &policyv1.Policy_Trace{
 				Trace: &policyv1.TraceTarget{
 					Match: []*policyv1.TraceMatcher{
@@ -250,6 +254,7 @@ func TestProcessTraces_DropByResourceAttribute(t *testing.T) {
 		{
 			Id:   "drop-by-service",
 			Name: "Drop By Service",
+			Enabled: true,
 			Target: &policyv1.Policy_Trace{
 				Trace: &policyv1.TraceTarget{
 					Match: []*policyv1.TraceMatcher{
@@ -294,6 +299,7 @@ func TestProcessTraces_MultipleMatchers(t *testing.T) {
 		{
 			Id:   "drop-internal-errors",
 			Name: "Drop Internal Errors",
+			Enabled: true,
 			Target: &policyv1.Policy_Trace{
 				Trace: &policyv1.TraceTarget{
 					Match: []*policyv1.TraceMatcher{
@@ -346,6 +352,7 @@ func TestProcessTraces_MultiplePolicies(t *testing.T) {
 		{
 			Id:   "drop-internal-kind",
 			Name: "Drop Internal Kind",
+			Enabled: true,
 			Target: &policyv1.Policy_Trace{
 				Trace: &policyv1.TraceTarget{
 					Match: []*policyv1.TraceMatcher{
@@ -360,6 +367,7 @@ func TestProcessTraces_MultiplePolicies(t *testing.T) {
 		{
 			Id:   "drop-healthcheck",
 			Name: "Drop Healthcheck",
+			Enabled: true,
 			Target: &policyv1.Policy_Trace{
 				Trace: &policyv1.TraceTarget{
 					Match: []*policyv1.TraceMatcher{
@@ -408,6 +416,7 @@ func TestProcessTraces_KeepAll(t *testing.T) {
 		{
 			Id:   "keep-important",
 			Name: "Keep Important",
+			Enabled: true,
 			Target: &policyv1.Policy_Trace{
 				Trace: &policyv1.TraceTarget{
 					Match: []*policyv1.TraceMatcher{
@@ -444,6 +453,7 @@ func TestProcessTraces_MultipleResourcesAndScopes(t *testing.T) {
 		{
 			Id:   "drop-internal-kind",
 			Name: "Drop Internal Kind",
+			Enabled: true,
 			Target: &policyv1.Policy_Trace{
 				Trace: &policyv1.TraceTarget{
 					Match: []*policyv1.TraceMatcher{
@@ -511,6 +521,7 @@ func TestProcessTraces_ScopeAttributes(t *testing.T) {
 		{
 			Id:   "drop-by-scope",
 			Name: "Drop By Scope",
+			Enabled: true,
 			Target: &policyv1.Policy_Trace{
 				Trace: &policyv1.TraceTarget{
 					Match: []*policyv1.TraceMatcher{
@@ -554,6 +565,7 @@ func TestProcessTraces_RegexMatching(t *testing.T) {
 		{
 			Id:   "drop-api-v1",
 			Name: "Drop API v1",
+			Enabled: true,
 			Target: &policyv1.Policy_Trace{
 				Trace: &policyv1.TraceTarget{
 					Match: []*policyv1.TraceMatcher{
@@ -590,6 +602,7 @@ func TestProcessTraces_EmptyTraces(t *testing.T) {
 		{
 			Id:   "drop-all",
 			Name: "Drop All",
+			Enabled: true,
 			Target: &policyv1.Policy_Trace{
 				Trace: &policyv1.TraceTarget{
 					Match: []*policyv1.TraceMatcher{
@@ -618,6 +631,7 @@ func TestProcessTraces_DropAllSpans(t *testing.T) {
 		{
 			Id:   "drop-all-test",
 			Name: "Drop All Test",
+			Enabled: true,
 			Target: &policyv1.Policy_Trace{
 				Trace: &policyv1.TraceTarget{
 					Match: []*policyv1.TraceMatcher{
@@ -655,6 +669,7 @@ func TestProcessTraces_TraceID(t *testing.T) {
 		{
 			Id:   "drop-specific-trace",
 			Name: "Drop Specific Trace",
+			Enabled: true,
 			Target: &policyv1.Policy_Trace{
 				Trace: &policyv1.TraceTarget{
 					Match: []*policyv1.TraceMatcher{
@@ -711,7 +726,8 @@ func TestProcessTraces_AllSpanKinds(t *testing.T) {
 				{
 					Id:   "drop-" + k.name,
 					Name: "Drop " + k.name,
-					Target: &policyv1.Policy_Trace{
+					Enabled: true,
+			Target: &policyv1.Policy_Trace{
 						Trace: &policyv1.TraceTarget{
 							Match: []*policyv1.TraceMatcher{
 								{

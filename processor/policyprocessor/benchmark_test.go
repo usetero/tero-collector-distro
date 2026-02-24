@@ -91,6 +91,7 @@ func BenchmarkLogs_ExactMatch(b *testing.B) {
 		{
 			Id:   "drop-debug",
 			Name: "Drop Debug",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -112,6 +113,7 @@ func BenchmarkLogs_RegexMatch(b *testing.B) {
 		{
 			Id:   "drop-pattern",
 			Name: "Drop Pattern",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -133,6 +135,7 @@ func BenchmarkLogs_AttributeMatch(b *testing.B) {
 		{
 			Id:   "drop-by-attr",
 			Name: "Drop By Attr",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -154,6 +157,7 @@ func BenchmarkLogs_MultiplePolicies(b *testing.B) {
 		{
 			Id:   "drop-debug",
 			Name: "Drop Debug",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -169,6 +173,7 @@ func BenchmarkLogs_MultiplePolicies(b *testing.B) {
 		{
 			Id:   "drop-trace",
 			Name: "Drop Trace",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -184,6 +189,7 @@ func BenchmarkLogs_MultiplePolicies(b *testing.B) {
 		{
 			Id:   "drop-service-0",
 			Name: "Drop Service 0",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -259,6 +265,7 @@ func BenchmarkLogs_TransformRemove(b *testing.B) {
 		{
 			Id:   "remove-secret",
 			Name: "Remove Secret",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -289,6 +296,7 @@ func BenchmarkLogs_TransformRedact(b *testing.B) {
 		{
 			Id:   "redact-email",
 			Name: "Redact Email",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -320,6 +328,7 @@ func BenchmarkLogs_TransformRename(b *testing.B) {
 		{
 			Id:   "rename-attr",
 			Name: "Rename Attribute",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -352,6 +361,7 @@ func BenchmarkLogs_TransformAdd(b *testing.B) {
 		{
 			Id:   "add-env",
 			Name: "Add Environment",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -384,6 +394,7 @@ func BenchmarkLogs_TransformAllOps(b *testing.B) {
 		{
 			Id:   "all-transforms",
 			Name: "All Transforms",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -440,6 +451,7 @@ func BenchmarkLogs_TransformMultipleRedacts(b *testing.B) {
 		{
 			Id:   "multi-redact",
 			Name: "Multiple Redacts",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -483,6 +495,7 @@ func BenchmarkLogs_TransformResourceAndScopeAttrs(b *testing.B) {
 		{
 			Id:   "cross-scope",
 			Name: "Cross Scope Transforms",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -529,6 +542,7 @@ func BenchmarkLogs_TransformNoMatch(b *testing.B) {
 		{
 			Id:   "no-match-transform",
 			Name: "Transform No Match",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -621,6 +635,7 @@ func BenchmarkMetrics_ExactNameMatch(b *testing.B) {
 		{
 			Id:   "drop-metric",
 			Name: "Drop Metric",
+			Enabled: true,
 			Target: &policyv1.Policy_Metric{
 				Metric: &policyv1.MetricTarget{
 					Match: []*policyv1.MetricMatcher{
@@ -642,6 +657,7 @@ func BenchmarkMetrics_RegexMatch(b *testing.B) {
 		{
 			Id:   "drop-pattern",
 			Name: "Drop Pattern",
+			Enabled: true,
 			Target: &policyv1.Policy_Metric{
 				Metric: &policyv1.MetricTarget{
 					Match: []*policyv1.MetricMatcher{
@@ -663,6 +679,7 @@ func BenchmarkMetrics_TypeMatch(b *testing.B) {
 		{
 			Id:   "drop-gauge",
 			Name: "Drop Gauge",
+			Enabled: true,
 			Target: &policyv1.Policy_Metric{
 				Metric: &policyv1.MetricTarget{
 					Match: []*policyv1.MetricMatcher{
@@ -683,6 +700,7 @@ func BenchmarkMetrics_AttributeMatch(b *testing.B) {
 		{
 			Id:   "drop-by-attr",
 			Name: "Drop By Attr",
+			Enabled: true,
 			Target: &policyv1.Policy_Metric{
 				Metric: &policyv1.MetricTarget{
 					Match: []*policyv1.MetricMatcher{
@@ -704,6 +722,7 @@ func BenchmarkMetrics_MultiplePolicies(b *testing.B) {
 		{
 			Id:   "drop-metric-0",
 			Name: "Drop Metric 0",
+			Enabled: true,
 			Target: &policyv1.Policy_Metric{
 				Metric: &policyv1.MetricTarget{
 					Match: []*policyv1.MetricMatcher{
@@ -719,6 +738,7 @@ func BenchmarkMetrics_MultiplePolicies(b *testing.B) {
 		{
 			Id:   "drop-service-0",
 			Name: "Drop Service 0",
+			Enabled: true,
 			Target: &policyv1.Policy_Metric{
 				Metric: &policyv1.MetricTarget{
 					Match: []*policyv1.MetricMatcher{
@@ -734,6 +754,7 @@ func BenchmarkMetrics_MultiplePolicies(b *testing.B) {
 		{
 			Id:   "drop-method-1",
 			Name: "Drop Method 1",
+			Enabled: true,
 			Target: &policyv1.Policy_Metric{
 				Metric: &policyv1.MetricTarget{
 					Match: []*policyv1.MetricMatcher{
@@ -817,6 +838,7 @@ func BenchmarkTraces_ExactNameMatch(b *testing.B) {
 		{
 			Id:   "drop-span",
 			Name: "Drop Span",
+			Enabled: true,
 			Target: &policyv1.Policy_Trace{
 				Trace: &policyv1.TraceTarget{
 					Match: []*policyv1.TraceMatcher{
@@ -838,6 +860,7 @@ func BenchmarkTraces_RegexMatch(b *testing.B) {
 		{
 			Id:   "drop-pattern",
 			Name: "Drop Pattern",
+			Enabled: true,
 			Target: &policyv1.Policy_Trace{
 				Trace: &policyv1.TraceTarget{
 					Match: []*policyv1.TraceMatcher{
@@ -859,6 +882,7 @@ func BenchmarkTraces_SpanKindMatch(b *testing.B) {
 		{
 			Id:   "drop-internal",
 			Name: "Drop Internal",
+			Enabled: true,
 			Target: &policyv1.Policy_Trace{
 				Trace: &policyv1.TraceTarget{
 					Match: []*policyv1.TraceMatcher{
@@ -879,6 +903,7 @@ func BenchmarkTraces_StatusMatch(b *testing.B) {
 		{
 			Id:   "drop-errors",
 			Name: "Drop Errors",
+			Enabled: true,
 			Target: &policyv1.Policy_Trace{
 				Trace: &policyv1.TraceTarget{
 					Match: []*policyv1.TraceMatcher{
@@ -899,6 +924,7 @@ func BenchmarkTraces_AttributeMatch(b *testing.B) {
 		{
 			Id:   "drop-by-attr",
 			Name: "Drop By Attr",
+			Enabled: true,
 			Target: &policyv1.Policy_Trace{
 				Trace: &policyv1.TraceTarget{
 					Match: []*policyv1.TraceMatcher{
@@ -920,6 +946,7 @@ func BenchmarkTraces_MultiplePolicies(b *testing.B) {
 		{
 			Id:   "drop-internal",
 			Name: "Drop Internal",
+			Enabled: true,
 			Target: &policyv1.Policy_Trace{
 				Trace: &policyv1.TraceTarget{
 					Match: []*policyv1.TraceMatcher{
@@ -934,6 +961,7 @@ func BenchmarkTraces_MultiplePolicies(b *testing.B) {
 		{
 			Id:   "drop-errors",
 			Name: "Drop Errors",
+			Enabled: true,
 			Target: &policyv1.Policy_Trace{
 				Trace: &policyv1.TraceTarget{
 					Match: []*policyv1.TraceMatcher{
@@ -948,6 +976,7 @@ func BenchmarkTraces_MultiplePolicies(b *testing.B) {
 		{
 			Id:   "drop-method-0",
 			Name: "Drop Method 0",
+			Enabled: true,
 			Target: &policyv1.Policy_Trace{
 				Trace: &policyv1.TraceTarget{
 					Match: []*policyv1.TraceMatcher{

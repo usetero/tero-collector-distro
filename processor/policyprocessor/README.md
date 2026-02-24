@@ -28,10 +28,10 @@ processors:
       github.com/usetero/tero-collector-distro/processor/policyprocessor v0.2.0
 
 receivers:
-  - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver v0.144.0
+  - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver v0.146.0
 
 exporters:
-  - gomod: go.opentelemetry.io/collector/exporter/debugexporter v0.144.0
+  - gomod: go.opentelemetry.io/collector/exporter/debugexporter v0.146.0
 ```
 
 Build the collector:

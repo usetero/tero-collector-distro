@@ -65,6 +65,7 @@ func TestProcessLogs_DropByBody(t *testing.T) {
 		{
 			Id:   "drop-debug",
 			Name: "Drop Debug",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -102,6 +103,7 @@ func TestProcessLogs_DropBySeverity(t *testing.T) {
 		{
 			Id:   "drop-debug-severity",
 			Name: "Drop Debug Severity",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -146,6 +148,7 @@ func TestProcessLogs_DropByAttribute(t *testing.T) {
 		{
 			Id:   "drop-by-env",
 			Name: "Drop By Env",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -189,6 +192,7 @@ func TestProcessLogs_DropByResourceAttribute(t *testing.T) {
 		{
 			Id:   "drop-by-service",
 			Name: "Drop By Service",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -235,6 +239,7 @@ func TestProcessLogs_TransformRedactAttribute(t *testing.T) {
 		{
 			Id:   "redact-api-key",
 			Name: "Redact API Key",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -295,6 +300,7 @@ func TestProcessLogs_TransformRemoveAttribute(t *testing.T) {
 		{
 			Id:   "remove-secret",
 			Name: "Remove Secret",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -349,6 +355,7 @@ func TestProcessLogs_TransformAddAttribute(t *testing.T) {
 		{
 			Id:   "add-processed",
 			Name: "Add Processed Flag",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -407,6 +414,7 @@ func TestProcessLogs_TransformAllOps(t *testing.T) {
 		{
 			Id:   "all-transforms",
 			Name: "All Transform Types",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -509,6 +517,7 @@ func TestProcessLogs_TransformNotAppliedOnDrop(t *testing.T) {
 		{
 			Id:   "drop-with-transform",
 			Name: "Drop With Transform",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -557,6 +566,7 @@ func TestProcessLogs_TransformRedactBody(t *testing.T) {
 		{
 			Id:   "redact-body",
 			Name: "Redact Body",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -612,6 +622,7 @@ func TestProcessLogs_KeepAll(t *testing.T) {
 		{
 			Id:   "keep-errors",
 			Name: "Keep Errors",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -650,6 +661,7 @@ func TestProcessLogs_MultiplePolicies(t *testing.T) {
 		{
 			Id:   "drop-debug",
 			Name: "Drop Debug",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -665,6 +677,7 @@ func TestProcessLogs_MultiplePolicies(t *testing.T) {
 		{
 			Id:   "drop-trace",
 			Name: "Drop Trace",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -703,6 +716,7 @@ func TestProcessLogs_MultipleMatchers(t *testing.T) {
 		{
 			Id:   "drop-debug-from-noisy",
 			Name: "Drop Debug From Noisy",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -757,6 +771,7 @@ func TestProcessLogs_RegexMatching(t *testing.T) {
 		{
 			Id:   "drop-health-checks",
 			Name: "Drop Health Checks",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -801,6 +816,7 @@ func TestProcessLogs_MultipleResourcesAndScopes(t *testing.T) {
 		{
 			Id:   "drop-debug",
 			Name: "Drop Debug",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -858,6 +874,7 @@ func TestProcessLogs_EmptyLogs(t *testing.T) {
 		{
 			Id:   "drop-all",
 			Name: "Drop All",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -886,6 +903,7 @@ func TestProcessLogs_TraceContext(t *testing.T) {
 		{
 			Id:   "drop-by-trace",
 			Name: "Drop By Trace",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
@@ -932,6 +950,7 @@ func TestProcessLogs_ScopeAttributes(t *testing.T) {
 		{
 			Id:   "drop-by-scope",
 			Name: "Drop By Scope",
+			Enabled: true,
 			Target: &policyv1.Policy_Log{
 				Log: &policyv1.LogTarget{
 					Match: []*policyv1.LogMatcher{
