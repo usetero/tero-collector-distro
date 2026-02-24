@@ -64,8 +64,9 @@ func TestProcessMetrics_NoPolicy(t *testing.T) {
 func TestProcessMetrics_DropByName(t *testing.T) {
 	policies := []*policyv1.Policy{
 		{
-			Id:   "drop-internal",
-			Name: "Drop Internal",
+			Id:      "drop-internal",
+			Name:    "Drop Internal",
+			Enabled: true,
 			Target: &policyv1.Policy_Metric{
 				Metric: &policyv1.MetricTarget{
 					Match: []*policyv1.MetricMatcher{
@@ -105,8 +106,9 @@ func TestProcessMetrics_DropByName(t *testing.T) {
 func TestProcessMetrics_DropByDescription(t *testing.T) {
 	policies := []*policyv1.Policy{
 		{
-			Id:   "drop-deprecated",
-			Name: "Drop Deprecated",
+			Id:      "drop-deprecated",
+			Name:    "Drop Deprecated",
+			Enabled: true,
 			Target: &policyv1.Policy_Metric{
 				Metric: &policyv1.MetricTarget{
 					Match: []*policyv1.MetricMatcher{
@@ -148,8 +150,9 @@ func TestProcessMetrics_DropByDescription(t *testing.T) {
 func TestProcessMetrics_DropByUnit(t *testing.T) {
 	policies := []*policyv1.Policy{
 		{
-			Id:   "drop-by-unit",
-			Name: "Drop By Unit",
+			Id:      "drop-by-unit",
+			Name:    "Drop By Unit",
+			Enabled: true,
 			Target: &policyv1.Policy_Metric{
 				Metric: &policyv1.MetricTarget{
 					Match: []*policyv1.MetricMatcher{
@@ -191,8 +194,9 @@ func TestProcessMetrics_DropByUnit(t *testing.T) {
 func TestProcessMetrics_DropByType(t *testing.T) {
 	policies := []*policyv1.Policy{
 		{
-			Id:   "drop-histograms",
-			Name: "Drop Histograms",
+			Id:      "drop-histograms",
+			Name:    "Drop Histograms",
+			Enabled: true,
 			Target: &policyv1.Policy_Metric{
 				Metric: &policyv1.MetricTarget{
 					Match: []*policyv1.MetricMatcher{
@@ -234,8 +238,9 @@ func TestProcessMetrics_DropByType(t *testing.T) {
 func TestProcessMetrics_DropByDatapointAttribute(t *testing.T) {
 	policies := []*policyv1.Policy{
 		{
-			Id:   "drop-by-method",
-			Name: "Drop By Method",
+			Id:      "drop-by-method",
+			Name:    "Drop By Method",
+			Enabled: true,
 			Target: &policyv1.Policy_Metric{
 				Metric: &policyv1.MetricTarget{
 					Match: []*policyv1.MetricMatcher{
@@ -283,8 +288,9 @@ func TestProcessMetrics_DropByDatapointAttribute(t *testing.T) {
 func TestProcessMetrics_DropByResourceAttribute(t *testing.T) {
 	policies := []*policyv1.Policy{
 		{
-			Id:   "drop-by-service",
-			Name: "Drop By Service",
+			Id:      "drop-by-service",
+			Name:    "Drop By Service",
+			Enabled: true,
 			Target: &policyv1.Policy_Metric{
 				Metric: &policyv1.MetricTarget{
 					Match: []*policyv1.MetricMatcher{
@@ -331,8 +337,9 @@ func TestProcessMetrics_DropByResourceAttribute(t *testing.T) {
 func TestProcessMetrics_MultipleMatchers(t *testing.T) {
 	policies := []*policyv1.Policy{
 		{
-			Id:   "drop-internal-histograms",
-			Name: "Drop Internal Histograms",
+			Id:      "drop-internal-histograms",
+			Name:    "Drop Internal Histograms",
+			Enabled: true,
 			Target: &policyv1.Policy_Metric{
 				Metric: &policyv1.MetricTarget{
 					Match: []*policyv1.MetricMatcher{
@@ -381,8 +388,9 @@ func TestProcessMetrics_MultipleMatchers(t *testing.T) {
 func TestProcessMetrics_AllMetricTypes(t *testing.T) {
 	policies := []*policyv1.Policy{
 		{
-			Id:   "drop-test-metrics",
-			Name: "Drop Test Metrics",
+			Id:      "drop-test-metrics",
+			Name:    "Drop Test Metrics",
+			Enabled: true,
 			Target: &policyv1.Policy_Metric{
 				Metric: &policyv1.MetricTarget{
 					Match: []*policyv1.MetricMatcher{
@@ -447,8 +455,9 @@ func TestProcessMetrics_AllMetricTypes(t *testing.T) {
 func TestProcessMetrics_MultipleDatapoints(t *testing.T) {
 	policies := []*policyv1.Policy{
 		{
-			Id:   "drop-errors",
-			Name: "Drop Errors",
+			Id:      "drop-errors",
+			Name:    "Drop Errors",
+			Enabled: true,
 			Target: &policyv1.Policy_Metric{
 				Metric: &policyv1.MetricTarget{
 					Match: []*policyv1.MetricMatcher{
@@ -501,8 +510,9 @@ func TestProcessMetrics_MultipleDatapoints(t *testing.T) {
 func TestProcessMetrics_DropAllDatapoints(t *testing.T) {
 	policies := []*policyv1.Policy{
 		{
-			Id:   "drop-all-test",
-			Name: "Drop All Test",
+			Id:      "drop-all-test",
+			Name:    "Drop All Test",
+			Enabled: true,
 			Target: &policyv1.Policy_Metric{
 				Metric: &policyv1.MetricTarget{
 					Match: []*policyv1.MetricMatcher{
@@ -540,8 +550,9 @@ func TestProcessMetrics_DropAllDatapoints(t *testing.T) {
 func TestProcessMetrics_EmptyMetrics(t *testing.T) {
 	policies := []*policyv1.Policy{
 		{
-			Id:   "drop-all",
-			Name: "Drop All",
+			Id:      "drop-all",
+			Name:    "Drop All",
+			Enabled: true,
 			Target: &policyv1.Policy_Metric{
 				Metric: &policyv1.MetricTarget{
 					Match: []*policyv1.MetricMatcher{
@@ -568,8 +579,9 @@ func TestProcessMetrics_EmptyMetrics(t *testing.T) {
 func TestProcessMetrics_MultiplePolicies(t *testing.T) {
 	policies := []*policyv1.Policy{
 		{
-			Id:   "drop-internal",
-			Name: "Drop Internal",
+			Id:      "drop-internal",
+			Name:    "Drop Internal",
+			Enabled: true,
 			Target: &policyv1.Policy_Metric{
 				Metric: &policyv1.MetricTarget{
 					Match: []*policyv1.MetricMatcher{
@@ -583,8 +595,9 @@ func TestProcessMetrics_MultiplePolicies(t *testing.T) {
 			},
 		},
 		{
-			Id:   "drop-debug",
-			Name: "Drop Debug",
+			Id:      "drop-debug",
+			Name:    "Drop Debug",
+			Enabled: true,
 			Target: &policyv1.Policy_Metric{
 				Metric: &policyv1.MetricTarget{
 					Match: []*policyv1.MetricMatcher{
@@ -620,8 +633,9 @@ func TestProcessMetrics_MultiplePolicies(t *testing.T) {
 func TestProcessMetrics_KeepAll(t *testing.T) {
 	policies := []*policyv1.Policy{
 		{
-			Id:   "keep-important",
-			Name: "Keep Important",
+			Id:      "keep-important",
+			Name:    "Keep Important",
+			Enabled: true,
 			Target: &policyv1.Policy_Metric{
 				Metric: &policyv1.MetricTarget{
 					Match: []*policyv1.MetricMatcher{
@@ -657,8 +671,9 @@ func TestProcessMetrics_KeepAll(t *testing.T) {
 func TestProcessMetrics_MultipleResourcesAndScopes(t *testing.T) {
 	policies := []*policyv1.Policy{
 		{
-			Id:   "drop-internal",
-			Name: "Drop Internal",
+			Id:      "drop-internal",
+			Name:    "Drop Internal",
+			Enabled: true,
 			Target: &policyv1.Policy_Metric{
 				Metric: &policyv1.MetricTarget{
 					Match: []*policyv1.MetricMatcher{
@@ -725,8 +740,9 @@ func TestProcessMetrics_MultipleResourcesAndScopes(t *testing.T) {
 func TestProcessMetrics_ScopeAttributes(t *testing.T) {
 	policies := []*policyv1.Policy{
 		{
-			Id:   "drop-by-scope",
-			Name: "Drop By Scope",
+			Id:      "drop-by-scope",
+			Name:    "Drop By Scope",
+			Enabled: true,
 			Target: &policyv1.Policy_Metric{
 				Metric: &policyv1.MetricTarget{
 					Match: []*policyv1.MetricMatcher{
@@ -772,8 +788,9 @@ func TestProcessMetrics_ScopeAttributes(t *testing.T) {
 func TestProcessMetrics_RegexMatching(t *testing.T) {
 	policies := []*policyv1.Policy{
 		{
-			Id:   "drop-process-metrics",
-			Name: "Drop Process Metrics",
+			Id:      "drop-process-metrics",
+			Name:    "Drop Process Metrics",
+			Enabled: true,
 			Target: &policyv1.Policy_Metric{
 				Metric: &policyv1.MetricTarget{
 					Match: []*policyv1.MetricMatcher{
