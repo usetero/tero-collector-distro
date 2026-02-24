@@ -193,6 +193,14 @@ tasks:
       - task: test
       - task: build
 
+  # Run
+  run:
+    desc: Run the collector locally with example config
+    deps: [build:collector]
+    cmds:
+      - sed 's|/etc/tero-collector/policies.json|{{.ROOT_DIR}}/examples/policies.json|' examples/config.yaml > /tmp/tero-collector-config.yaml
+      - ./collector/_build/tero-collector --config /tmp/tero-collector-config.yaml
+
   # Docker
   docker:run:
     desc: Run the collector container
