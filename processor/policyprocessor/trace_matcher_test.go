@@ -43,7 +43,7 @@ func TestTraceMatcher_Fields(t *testing.T) {
 				return TraceContext{Span: span}
 			},
 			ref:      policy.TraceFieldRef{Field: policy.TraceFieldTraceID},
-			expected: []byte("0102030405060708090a0b0c0d0e0f10"),
+			expected: []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
 		},
 		{
 			name: "trace id empty",
@@ -63,7 +63,7 @@ func TestTraceMatcher_Fields(t *testing.T) {
 				return TraceContext{Span: span}
 			},
 			ref:      policy.TraceFieldRef{Field: policy.TraceFieldSpanID},
-			expected: []byte("0102030405060708"),
+			expected: []byte{1, 2, 3, 4, 5, 6, 7, 8},
 		},
 		{
 			name: "span id empty",
@@ -83,7 +83,7 @@ func TestTraceMatcher_Fields(t *testing.T) {
 				return TraceContext{Span: span}
 			},
 			ref:      policy.TraceFieldRef{Field: policy.TraceFieldParentSpanID},
-			expected: []byte("0807060504030201"),
+			expected: []byte{8, 7, 6, 5, 4, 3, 2, 1},
 		},
 		{
 			name: "parent span id empty",
@@ -201,7 +201,7 @@ func TestTraceMatcher_Fields(t *testing.T) {
 				return TraceContext{Span: span}
 			},
 			ref:      policy.TraceFieldRef{Field: policy.TraceFieldStatus},
-			expected: nil,
+			expected: []byte("unset"),
 		},
 		{
 			name: "scope name",

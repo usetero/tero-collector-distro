@@ -909,7 +909,7 @@ func TestProcessLogs_TraceContext(t *testing.T) {
 					Match: []*policyv1.LogMatcher{
 						{
 							Field: &policyv1.LogMatcher_LogField{LogField: policyv1.LogField_LOG_FIELD_TRACE_ID},
-							Match: &policyv1.LogMatcher_Exact{Exact: "0102030405060708090a0b0c0d0e0f10"},
+							Match: &policyv1.LogMatcher_Exact{Exact: "trace-id-abc1234"},
 						},
 					},
 					Keep: "none",
@@ -924,16 +924,16 @@ func TestProcessLogs_TraceContext(t *testing.T) {
 	rl := logs.ResourceLogs().AppendEmpty()
 	sl := rl.ScopeLogs().AppendEmpty()
 
-	// Log with matching trace ID
+	// Log with matching trace ID (raw bytes of "trace-id-abc1234")
 	lr1 := sl.LogRecords().AppendEmpty()
 	var traceID1 pcommon.TraceID
-	copy(traceID1[:], []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10})
+	copy(traceID1[:], "trace-id-abc1234")
 	lr1.SetTraceID(traceID1)
 
 	// Log with different trace ID
 	lr2 := sl.LogRecords().AppendEmpty()
 	var traceID2 pcommon.TraceID
-	copy(traceID2[:], []byte{0xff, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10})
+	copy(traceID2[:], "trace-id-def5678")
 	lr2.SetTraceID(traceID2)
 
 	// Log without trace ID

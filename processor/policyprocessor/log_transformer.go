@@ -75,6 +75,18 @@ func logRedact(ctx LogContext, ref policy.LogFieldRef, replacement string) bool 
 			hit := ctx.Record.SeverityText() != ""
 			ctx.Record.SetSeverityText(replacement)
 			return hit
+		case policy.LogFieldTraceID:
+			hit := !ctx.Record.TraceID().IsEmpty()
+			var tid pcommon.TraceID
+			copy(tid[:], replacement)
+			ctx.Record.SetTraceID(tid)
+			return hit
+		case policy.LogFieldSpanID:
+			hit := !ctx.Record.SpanID().IsEmpty()
+			var sid pcommon.SpanID
+			copy(sid[:], replacement)
+			ctx.Record.SetSpanID(sid)
+			return hit
 		case policy.LogFieldEventName:
 			hit := ctx.Record.EventName() != ""
 			ctx.Record.SetEventName(replacement)
@@ -130,6 +142,22 @@ func logAdd(ctx LogContext, ref policy.LogFieldRef, value string, upsert bool) b
 				return true
 			}
 			ctx.Record.SetSeverityText(value)
+			return true
+		case policy.LogFieldTraceID:
+			if !upsert && !ctx.Record.TraceID().IsEmpty() {
+				return true
+			}
+			var tid pcommon.TraceID
+			copy(tid[:], value)
+			ctx.Record.SetTraceID(tid)
+			return true
+		case policy.LogFieldSpanID:
+			if !upsert && !ctx.Record.SpanID().IsEmpty() {
+				return true
+			}
+			var sid pcommon.SpanID
+			copy(sid[:], value)
+			ctx.Record.SetSpanID(sid)
 			return true
 		case policy.LogFieldEventName:
 			if !upsert && ctx.Record.EventName() != "" {

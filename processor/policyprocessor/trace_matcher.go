@@ -8,9 +8,11 @@ import (
 
 // TraceContext holds the context needed to evaluate a span against policies.
 type TraceContext struct {
-	Span     ptrace.Span
-	Resource pcommon.Resource
-	Scope    pcommon.InstrumentationScope
+	Span              ptrace.Span
+	Resource          pcommon.Resource
+	Scope             pcommon.InstrumentationScope
+	ResourceSchemaURL string
+	ScopeSchemaURL    string
 }
 
 // TraceMatcher extracts field values from a TraceContext for policy evaluation.
@@ -25,22 +27,22 @@ func TraceMatcher(ctx TraceContext, ref policy.TraceFieldRef) []byte {
 			return nil
 		case policy.TraceFieldTraceID:
 			traceID := ctx.Span.TraceID()
-			if !traceID.IsEmpty() {
-				return []byte(traceID.String())
+			if traceID.IsEmpty() {
+				return nil
 			}
-			return nil
+			return traceID[:]
 		case policy.TraceFieldSpanID:
 			spanID := ctx.Span.SpanID()
-			if !spanID.IsEmpty() {
-				return []byte(spanID.String())
+			if spanID.IsEmpty() {
+				return nil
 			}
-			return nil
+			return spanID[:]
 		case policy.TraceFieldParentSpanID:
 			parentSpanID := ctx.Span.ParentSpanID()
-			if !parentSpanID.IsEmpty() {
-				return []byte(parentSpanID.String())
+			if parentSpanID.IsEmpty() {
+				return nil
 			}
-			return nil
+			return parentSpanID[:]
 		case policy.TraceFieldTraceState:
 			if traceState := ctx.Span.TraceState().AsRaw(); traceState != "" {
 				return []byte(traceState)
@@ -67,9 +69,19 @@ func TraceMatcher(ctx TraceContext, ref policy.TraceFieldRef) []byte {
 				return []byte("ok")
 			case ptrace.StatusCodeError:
 				return []byte("error")
+			case ptrace.StatusCodeUnset:
+				return []byte("unset")
 			default:
 				return nil
 			}
+		case policy.TraceFieldEventName:
+			events := ctx.Span.Events()
+			for i := 0; i < events.Len(); i++ {
+				if name := events.At(i).Name(); name != "" {
+					return []byte(name)
+				}
+			}
+			return nil
 		case policy.TraceFieldScopeName:
 			if name := ctx.Scope.Name(); name != "" {
 				return []byte(name)
@@ -80,6 +92,16 @@ func TraceMatcher(ctx TraceContext, ref policy.TraceFieldRef) []byte {
 				return []byte(version)
 			}
 			return nil
+		case policy.TraceFieldResourceSchemaURL:
+			if ctx.ResourceSchemaURL == "" {
+				return nil
+			}
+			return []byte(ctx.ResourceSchemaURL)
+		case policy.TraceFieldScopeSchemaURL:
+			if ctx.ScopeSchemaURL == "" {
+				return nil
+			}
+			return []byte(ctx.ScopeSchemaURL)
 		default:
 			return nil
 		}

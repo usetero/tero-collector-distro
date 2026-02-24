@@ -675,7 +675,7 @@ func TestProcessTraces_TraceID(t *testing.T) {
 					Match: []*policyv1.TraceMatcher{
 						{
 							Field: &policyv1.TraceMatcher_TraceField{TraceField: policyv1.TraceField_TRACE_FIELD_TRACE_ID},
-							Match: &policyv1.TraceMatcher_StartsWith{StartsWith: "0102030405060708"},
+							Match: &policyv1.TraceMatcher_Exact{Exact: "trace-id-abc1234"},
 						},
 					},
 					Keep: dropConfig(),
@@ -692,11 +692,15 @@ func TestProcessTraces_TraceID(t *testing.T) {
 
 	span1 := ss.Spans().AppendEmpty()
 	span1.SetName("span-1")
-	span1.SetTraceID(pcommon.TraceID([16]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}))
+	var traceID1 pcommon.TraceID
+	copy(traceID1[:], "trace-id-abc1234")
+	span1.SetTraceID(traceID1)
 
 	span2 := ss.Spans().AppendEmpty()
 	span2.SetName("span-2")
-	span2.SetTraceID(pcommon.TraceID([16]byte{16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1}))
+	var traceID2 pcommon.TraceID
+	copy(traceID2[:], "trace-id-def5678")
+	span2.SetTraceID(traceID2)
 
 	result, err := p.processTraces(context.Background(), traces)
 
