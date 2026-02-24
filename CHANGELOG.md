@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/usetero/tero-collector-distro/compare/v0.6.0...v0.6.1) (2026-02-24)
+
+
+### Bug Fixes
+
+* go version bump ([#30](https://github.com/usetero/tero-collector-distro/issues/30)) ([567a9fa](https://github.com/usetero/tero-collector-distro/commit/567a9fad00d6f0a284d9b67ce03d058de3565160))
+
 ## [0.6.0](https://github.com/usetero/tero-collector-distro/compare/v0.5.2...v0.6.0) (2026-02-24)
 
 
