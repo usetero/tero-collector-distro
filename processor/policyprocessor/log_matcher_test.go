@@ -63,7 +63,7 @@ func TestLogMatcher_Fields(t *testing.T) {
 				return LogContext{Record: lr}
 			},
 			ref:      policy.LogTraceID(),
-			expected: []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10},
+			expected: []byte("0102030405060708090a0b0c0d0e0f10"),
 		},
 		{
 			name: "trace id empty",
@@ -84,7 +84,7 @@ func TestLogMatcher_Fields(t *testing.T) {
 				return LogContext{Record: lr}
 			},
 			ref:      policy.LogSpanID(),
-			expected: []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08},
+			expected: []byte("0102030405060708"),
 		},
 		{
 			name: "span id empty",
