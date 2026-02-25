@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.3](https://github.com/usetero/tero-collector-distro/compare/v0.6.2...v0.6.3) (2026-02-25)
+
+
+### Bug Fixes
+
+* hex handling was incorrect ([#34](https://github.com/usetero/tero-collector-distro/issues/34)) ([c9b553a](https://github.com/usetero/tero-collector-distro/commit/c9b553a1584714c6fb417b2e579be70f5ad15475))
+* should be using removeif ([#36](https://github.com/usetero/tero-collector-distro/issues/36)) ([a6cc562](https://github.com/usetero/tero-collector-distro/commit/a6cc562626146f30945299fab08182443a058016))
+
 ## [0.6.2](https://github.com/usetero/tero-collector-distro/compare/v0.6.1...v0.6.2) (2026-02-24)
 
 
