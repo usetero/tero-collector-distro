@@ -1,6 +1,8 @@
 package policyprocessor
 
 import (
+	"encoding/hex"
+
 	"github.com/usetero/policy-go"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
@@ -32,13 +34,13 @@ func LogMatcher(ctx LogContext, ref policy.LogFieldRef) []byte {
 			if traceID.IsEmpty() {
 				return nil
 			}
-			return traceID[:]
+			return []byte(hex.EncodeToString(traceID[:]))
 		case policy.LogFieldSpanID:
 			spanID := ctx.Record.SpanID()
 			if spanID.IsEmpty() {
 				return nil
 			}
-			return spanID[:]
+			return []byte(hex.EncodeToString(spanID[:]))
 		case policy.LogFieldEventName:
 			if name := ctx.Record.EventName(); name != "" {
 				return []byte(name)
