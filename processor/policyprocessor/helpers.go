@@ -51,10 +51,14 @@ func removeNestedAttr(attrs pcommon.Map, path []string) bool {
 	}
 
 	if len(path) == 1 {
-		_, exists := attrs.Get(path[0])
-		if exists {
-			attrs.Remove(path[0])
-		}
+		var exists bool
+		attrs.RemoveIf(func(key string, _ pcommon.Value) bool {
+			if key == path[0] {
+				exists = true
+				return true
+			}
+			return false
+		})
 		return exists
 	}
 
