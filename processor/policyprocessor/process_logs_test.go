@@ -909,7 +909,7 @@ func TestProcessLogs_TraceContext(t *testing.T) {
 					Match: []*policyv1.LogMatcher{
 						{
 							Field: &policyv1.LogMatcher_LogField{LogField: policyv1.LogField_LOG_FIELD_TRACE_ID},
-							Match: &policyv1.LogMatcher_Exact{Exact: "trace-id-abc1234"},
+							Match: &policyv1.LogMatcher_Exact{Exact: "74726163652d69642d61626331323334"},
 						},
 					},
 					Keep: "none",

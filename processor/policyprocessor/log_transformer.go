@@ -99,6 +99,10 @@ func logRedact(ctx LogContext, ref policy.LogFieldRef, replacement string) bool 
 	if !ok {
 		return false
 	}
+	// Only redact if the attribute exists; redacting a non-existent attribute is a no-op.
+	if _, exists := getNestedAttr(attrs, ref.AttrPath); !exists {
+		return false
+	}
 	return setNestedAttr(attrs, ref.AttrPath, replacement)
 }
 
