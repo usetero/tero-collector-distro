@@ -945,6 +945,263 @@ func TestProcessLogs_TraceContext(t *testing.T) {
 	assert.Equal(t, 2, result.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords().Len())
 }
 
+// TestProcessLogs_CompoundTransformsAcrossPolicies verifies that transforms from
+// multiple matching policies are applied in alphanumeric order by policy ID.
+// This mirrors the conformance test "compound_transforms_across_policies".
+func TestProcessLogs_CompoundTransformsAcrossPolicies(t *testing.T) {
+	policies := []*policyv1.Policy{
+		{
+			Id:      "add-env-tag",
+			Name:    "Add environment tag",
+			Enabled: true,
+			Target: &policyv1.Policy_Log{
+				Log: &policyv1.LogTarget{
+					Match: []*policyv1.LogMatcher{
+						{
+							Field: &policyv1.LogMatcher_LogField{LogField: policyv1.LogField_LOG_FIELD_BODY},
+							Match: &policyv1.LogMatcher_Regex{Regex: "^.*$"},
+						},
+					},
+					Keep: "all",
+					Transform: &policyv1.LogTransform{
+						Add: []*policyv1.LogAdd{
+							{
+								Field: &policyv1.LogAdd_LogAttribute{
+									LogAttribute: &policyv1.AttributePath{Path: []string{"env"}},
+								},
+								Value:  "production",
+								Upsert: true,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			Id:      "add-region-tag",
+			Name:    "Add region tag",
+			Enabled: true,
+			Target: &policyv1.Policy_Log{
+				Log: &policyv1.LogTarget{
+					Match: []*policyv1.LogMatcher{
+						{
+							Field: &policyv1.LogMatcher_LogField{LogField: policyv1.LogField_LOG_FIELD_BODY},
+							Match: &policyv1.LogMatcher_Regex{Regex: "^.*$"},
+						},
+					},
+					Keep: "all",
+					Transform: &policyv1.LogTransform{
+						Add: []*policyv1.LogAdd{
+							{
+								Field: &policyv1.LogAdd_LogAttribute{
+									LogAttribute: &policyv1.AttributePath{Path: []string{"region"}},
+								},
+								Value:  "us-east-1",
+								Upsert: true,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			Id:      "add-team-tag",
+			Name:    "Add team tag",
+			Enabled: true,
+			Target: &policyv1.Policy_Log{
+				Log: &policyv1.LogTarget{
+					Match: []*policyv1.LogMatcher{
+						{
+							Field: &policyv1.LogMatcher_ResourceAttribute{
+								ResourceAttribute: &policyv1.AttributePath{Path: []string{"service.name"}},
+							},
+							Match: &policyv1.LogMatcher_Exact{Exact: "api-server"},
+						},
+					},
+					Keep: "all",
+					Transform: &policyv1.LogTransform{
+						Add: []*policyv1.LogAdd{
+							{
+								Field: &policyv1.LogAdd_LogAttribute{
+									LogAttribute: &policyv1.AttributePath{Path: []string{"team"}},
+								},
+								Value:  "platform",
+								Upsert: true,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			Id:      "redact-secrets",
+			Name:    "Redact secret attribute",
+			Enabled: true,
+			Target: &policyv1.Policy_Log{
+				Log: &policyv1.LogTarget{
+					Match: []*policyv1.LogMatcher{
+						{
+							Field: &policyv1.LogMatcher_LogAttribute{
+								LogAttribute: &policyv1.AttributePath{Path: []string{"secret"}},
+							},
+							Match: &policyv1.LogMatcher_Exists{Exists: true},
+						},
+					},
+					Keep: "all",
+					Transform: &policyv1.LogTransform{
+						Redact: []*policyv1.LogRedact{
+							{
+								Field: &policyv1.LogRedact_LogAttribute{
+									LogAttribute: &policyv1.AttributePath{Path: []string{"secret"}},
+								},
+								Replacement: "[REDACTED]",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			Id:      "rename-legacy-attr",
+			Name:    "Rename legacy attribute",
+			Enabled: true,
+			Target: &policyv1.Policy_Log{
+				Log: &policyv1.LogTarget{
+					Match: []*policyv1.LogMatcher{
+						{
+							Field: &policyv1.LogMatcher_LogAttribute{
+								LogAttribute: &policyv1.AttributePath{Path: []string{"old_name"}},
+							},
+							Match: &policyv1.LogMatcher_Exists{Exists: true},
+						},
+					},
+					Keep: "all",
+					Transform: &policyv1.LogTransform{
+						Rename: []*policyv1.LogRename{
+							{
+								From: &policyv1.LogRename_FromLogAttribute{
+									FromLogAttribute: &policyv1.AttributePath{Path: []string{"old_name"}},
+								},
+								To:     "new_name",
+								Upsert: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	p := createTestLogProcessor(t, policies)
+
+	// Helper to collect attribute keys in order from a log record.
+	attrKeys := func(lr plog.LogRecord) []string {
+		var keys []string
+		lr.Attributes().Range(func(k string, _ pcommon.Value) bool {
+			keys = append(keys, k)
+			return true
+		})
+		return keys
+	}
+
+	// Batch 1: resource "api-server" with 3 log records.
+	t.Run("batch1_api_server", func(t *testing.T) {
+		logs := plog.NewLogs()
+		rl := logs.ResourceLogs().AppendEmpty()
+		rl.Resource().Attributes().PutStr("service.name", "api-server")
+		sl := rl.ScopeLogs().AppendEmpty()
+
+		// Log 1: normal log (no attributes) — matches add-env, add-region, add-team
+		lr1 := sl.LogRecords().AppendEmpty()
+		lr1.SetSeverityText("INFO")
+		lr1.Body().SetStr("normal log")
+
+		// Log 2: log with secret — matches add-env, add-region, add-team, redact-secrets
+		lr2 := sl.LogRecords().AppendEmpty()
+		lr2.SetSeverityText("INFO")
+		lr2.Body().SetStr("log with secret")
+		lr2.Attributes().PutStr("secret", "my-api-key-12345")
+
+		// Log 3: log with legacy attr — matches add-env, add-region, add-team, rename-legacy-attr
+		lr3 := sl.LogRecords().AppendEmpty()
+		lr3.SetSeverityText("INFO")
+		lr3.Body().SetStr("log with legacy attr")
+		lr3.Attributes().PutStr("old_name", "important-value")
+
+		result, err := p.processLogs(context.Background(), logs)
+		require.NoError(t, err)
+
+		records := result.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords()
+		require.Equal(t, 3, records.Len())
+
+		// Record 1: "normal log" — transforms applied in alphanumeric policy ID order:
+		// add-env-tag → add-region-tag → add-team-tag
+		// Expected attribute order: env, region, team
+		rec1 := records.At(0)
+		assert.Equal(t, []string{"env", "region", "team"}, attrKeys(rec1))
+		val, _ := rec1.Attributes().Get("env")
+		assert.Equal(t, "production", val.Str())
+		val, _ = rec1.Attributes().Get("region")
+		assert.Equal(t, "us-east-1", val.Str())
+		val, _ = rec1.Attributes().Get("team")
+		assert.Equal(t, "platform", val.Str())
+
+		// Record 2: "log with secret" — transforms applied in order:
+		// add-env-tag → add-region-tag → add-team-tag → redact-secrets
+		// Expected attribute order: secret, env, region, team
+		// (secret was already present and gets redacted in-place)
+		rec2 := records.At(1)
+		assert.Equal(t, []string{"secret", "env", "region", "team"}, attrKeys(rec2))
+		val, _ = rec2.Attributes().Get("secret")
+		assert.Equal(t, "[REDACTED]", val.Str())
+
+		// Record 3: "log with legacy attr" — transforms applied in order:
+		// add-env-tag → add-region-tag → add-team-tag → rename-legacy-attr
+		// Expected attribute order: env, region, team, new_name
+		// (old_name is removed and new_name is added at the end)
+		rec3 := records.At(2)
+		assert.Equal(t, []string{"env", "region", "team", "new_name"}, attrKeys(rec3))
+		val, _ = rec3.Attributes().Get("new_name")
+		assert.Equal(t, "important-value", val.Str())
+	})
+
+	// Batch 2: resource "worker-service" with 1 log record.
+	t.Run("batch2_worker_service", func(t *testing.T) {
+		logs := plog.NewLogs()
+		rl := logs.ResourceLogs().AppendEmpty()
+		rl.Resource().Attributes().PutStr("service.name", "worker-service")
+		sl := rl.ScopeLogs().AppendEmpty()
+
+		// Log with both secret and old_name — matches add-env, add-region, redact-secrets, rename-legacy-attr
+		// (NOT add-team-tag, since resource is worker-service, not api-server)
+		lr := sl.LogRecords().AppendEmpty()
+		lr.SetSeverityText("INFO")
+		lr.Body().SetStr("worker processing")
+		lr.Attributes().PutStr("secret", "another-secret")
+		lr.Attributes().PutStr("old_name", "legacy-data")
+
+		result, err := p.processLogs(context.Background(), logs)
+		require.NoError(t, err)
+
+		records := result.ResourceLogs().At(0).ScopeLogs().At(0).LogRecords()
+		require.Equal(t, 1, records.Len())
+
+		// Transforms applied in alphanumeric policy ID order:
+		// add-env-tag → add-region-tag → redact-secrets → rename-legacy-attr
+		// Expected attribute order: secret, env, region, new_name
+		rec := records.At(0)
+		assert.Equal(t, []string{"secret", "env", "region", "new_name"}, attrKeys(rec))
+		val, _ := rec.Attributes().Get("secret")
+		assert.Equal(t, "[REDACTED]", val.Str())
+		val, _ = rec.Attributes().Get("env")
+		assert.Equal(t, "production", val.Str())
+		val, _ = rec.Attributes().Get("region")
+		assert.Equal(t, "us-east-1", val.Str())
+		val, _ = rec.Attributes().Get("new_name")
+		assert.Equal(t, "legacy-data", val.Str())
+	})
+}
+
 func TestProcessLogs_ScopeAttributes(t *testing.T) {
 	policies := []*policyv1.Policy{
 		{

@@ -57,10 +57,6 @@ func logRemove(ctx LogContext, ref policy.LogFieldRef) bool {
 	if !exists {
 		return false
 	}
-	if len(ref.AttrPath) == 1 {
-		attrs.Remove(ref.AttrPath[0])
-		return true
-	}
 	return removeNestedAttr(attrs, ref.AttrPath)
 }
 
