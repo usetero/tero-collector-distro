@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.7.0](https://github.com/usetero/tero-collector-distro/compare/v0.6.3...v0.7.0) (2026-03-06)
+
+
+### Features
+
+* add opensearch ([#51](https://github.com/usetero/tero-collector-distro/issues/51)) ([acfe741](https://github.com/usetero/tero-collector-distro/commit/acfe741ddb1f7d9773841bd71decc21a2d07f7e4))
+
+
+### Bug Fixes
+
+* **deps:** update go dependencies (non-major) to v0.146.1 ([#39](https://github.com/usetero/tero-collector-distro/issues/39)) ([500a5e3](https://github.com/usetero/tero-collector-distro/commit/500a5e301f8394c40a723d1cfeb5e7b05642402e))
+
 ## [0.6.3](https://github.com/usetero/tero-collector-distro/compare/v0.6.2...v0.6.3) (2026-02-25)
 
 
