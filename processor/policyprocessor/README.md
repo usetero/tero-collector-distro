@@ -1,7 +1,7 @@
 # Policy Processor
 
-The Policy Processor filters, samples, and routes OpenTelemetry logs based on
-configurable policies using the
+The Policy Processor filters, samples, transforms, and routes OpenTelemetry
+signals based on configurable policies using the
 [policy-go](https://github.com/usetero/policy-go) library.
 
 ## Installation
@@ -25,13 +25,13 @@ dist:
 
 processors:
   - gomod:
-      github.com/usetero/tero-collector-distro/processor/policyprocessor v0.2.0
+      github.com/usetero/tero-collector-distro/processor/policyprocessor v0.7.0
 
 receivers:
-  - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver v0.146.0
+  - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver v0.148.0
 
 exporters:
-  - gomod: go.opentelemetry.io/collector/exporter/debugexporter v0.146.0
+  - gomod: go.opentelemetry.io/collector/exporter/debugexporter v0.148.0
 ```
 
 Build the collector:
@@ -129,11 +129,11 @@ schema.
 
 ## Supported Telemetry Types
 
-| Type    | Status            |
-| ------- | ----------------- |
-| Logs    | Alpha             |
-| Metrics | Not yet supported |
-| Traces  | Not yet supported |
+| Type    | Status      |
+| ------- | ----------- |
+| Logs    | Development |
+| Metrics | Development |
+| Traces  | Development |
 
 ## Telemetry
 
@@ -143,4 +143,4 @@ The processor emits the following metrics:
 | -------------------------- | ------- | -------------------------------------------------------------------------- |
 | `processor_policy_records` | Counter | Number of records processed, with attributes `telemetry_type` and `result` |
 
-Result values: `dropped`, `kept`, `sampled`, `no_match`
+Result values: `dropped`, `kept`, `transformed`, `sampled`, `no_match`
