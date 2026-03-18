@@ -5,7 +5,7 @@ FROM golang:1.26-alpine@sha256:2389ebfa5b7f43eeafbd6be0c3700cc46690ef842ad962f6c
 RUN apk add --no-cache git build-base vectorscan-dev vectorscan-static pkgconf
 
 # Install ocb (OpenTelemetry Collector Builder)
-RUN go install go.opentelemetry.io/collector/cmd/builder@v0.146.0
+RUN go install go.opentelemetry.io/collector/cmd/builder@v0.148.0
 
 WORKDIR /build
 
