@@ -90,6 +90,12 @@ receivers:
   - gomod: >-
       github.com/open-telemetry/opentelemetry-collector-contrib/receiver/zipkinreceiver
       v0.148.0
+  - gomod: >-
+      github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kubeletstatsreceiver
+      v0.148.0
+  - gomod: >-
+      github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver
+      v0.148.0
 connectors:
   - gomod: go.opentelemetry.io/collector/connector/forwardconnector v0.148.0
   - gomod: >-
