@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.1](https://github.com/usetero/tero-collector-distro/compare/v0.7.0...v0.7.1) (2026-03-30)
+
+
+### Bug Fixes
+
+* include hostmetrics and kubelet ([#58](https://github.com/usetero/tero-collector-distro/issues/58)) ([3e6939c](https://github.com/usetero/tero-collector-distro/commit/3e6939c5e07488f5949a2a6d5159f718f3052f32))
+* make readme up to date for processor ([#56](https://github.com/usetero/tero-collector-distro/issues/56)) ([afc6ea8](https://github.com/usetero/tero-collector-distro/commit/afc6ea8c50af6d42566808a12b67a1502d2978c0))
+
 ## [0.7.0](https://github.com/usetero/tero-collector-distro/compare/v0.6.3...v0.7.0) (2026-03-06)
 
 
