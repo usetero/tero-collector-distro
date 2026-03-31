@@ -88,6 +88,15 @@ receivers:
       github.com/open-telemetry/opentelemetry-collector-contrib/receiver/redisreceiver
       v0.148.0
   - gomod: >-
+      github.com/open-telemetry/opentelemetry-collector-contrib/receiver/httpcheckreceiver
+      v0.148.0
+  - gomod: >-
+      github.com/open-telemetry/opentelemetry-collector-contrib/receiver/nginxreceiver
+      v0.148.0
+  - gomod: >-
+      github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filelogreceiver
+      v0.148.0
+  - gomod: >-
       github.com/open-telemetry/opentelemetry-collector-contrib/receiver/zipkinreceiver
       v0.148.0
   - gomod: >-
