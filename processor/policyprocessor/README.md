@@ -94,6 +94,27 @@ service:
 | `url`                | `string`   | URL for remote provider (http/grpc only)  |
 | `headers`            | `[]Header` | HTTP headers (http provider only)         |
 
+### Service Metadata
+
+When using `http` or `grpc` providers, the processor automatically sets service
+metadata from the collector's
+[resource](https://opentelemetry.io/docs/concepts/resources/) configuration:
+
+| Field                | Source attribute       |
+| -------------------- | ---------------------- |
+| `service_name`       | `service.name`         |
+| `service_namespace`  | `service.namespace`    |
+| `service_instance_id`| `service.instance.id`  |
+| `service_version`    | `service.version`      |
+
+All resource attributes are also forwarded. These values are set via the
+collector's `service.telemetry.resource` configuration and can be supplemented
+by processors like `resourcedetection`.
+
+Service metadata can also be overridden in the processor configuration under
+the `service_metadata` key — config values take precedence over resource
+attributes.
+
 ## Policy Format
 
 Policies are defined in JSON. See the
