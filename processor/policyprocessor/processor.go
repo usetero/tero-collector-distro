@@ -25,16 +25,18 @@ type policyProcessor struct {
 	logger    *zap.Logger
 	config    *Config
 	telemetry *metadata.TelemetryBuilder
+	resource  pcommon.Resource
 	registry  *policy.PolicyRegistry
 	engine    *policy.PolicyEngine
 	providers []policy.LoadedProvider
 }
 
-func newPolicyProcessor(logger *zap.Logger, cfg *Config, telemetry *metadata.TelemetryBuilder) *policyProcessor {
+func newPolicyProcessor(logger *zap.Logger, cfg *Config, telemetry *metadata.TelemetryBuilder, resource pcommon.Resource) *policyProcessor {
 	return &policyProcessor{
 		logger:    logger,
 		config:    cfg,
 		telemetry: telemetry,
+		resource:  resource,
 	}
 }
 
@@ -54,8 +56,12 @@ func (p *policyProcessor) start(_ context.Context, _ component.Host) error {
 		p.logger.Info("Policies recompiled")
 	})
 
+	// Build service metadata from collector resource attributes
+	serviceMetadata := p.buildServiceMetadata()
+
 	// Create config loader
 	loader := policy.NewConfigLoader(p.registry).
+		WithServiceMetadata(serviceMetadata).
 		WithOnError(func(err error) {
 			p.logger.Error("Policy provider error", zap.Error(err))
 		})
@@ -279,6 +285,32 @@ func (p *policyProcessor) processLogs(ctx context.Context, ld plog.Logs) (plog.L
 	})
 
 	return ld, nil
+}
+
+func (p *policyProcessor) buildServiceMetadata() *policy.ServiceMetadata {
+	getAttr := func(key string) string {
+		v, ok := p.resource.Attributes().Get(key)
+		if !ok {
+			return "unknown"
+		}
+		return v.AsString()
+	}
+
+	sm := &policy.ServiceMetadata{
+		ServiceName:       getAttr("service.name"),
+		ServiceNamespace:  getAttr("service.namespace"),
+		ServiceInstanceID: getAttr("service.instance.id"),
+		ServiceVersion:    getAttr("service.version"),
+	}
+
+	resourceAttrs := make(map[string]string)
+	p.resource.Attributes().Range(func(k string, v pcommon.Value) bool {
+		resourceAttrs[k] = v.AsString()
+		return true
+	})
+	sm.ResourceAttributes = resourceAttrs
+
+	return sm
 }
 
 func (p *policyProcessor) recordMetric(ctx context.Context, telemetryType string, result policy.EvaluateResult) {

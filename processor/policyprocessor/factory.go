@@ -43,7 +43,7 @@ func createTracesProcessor(
 	if err != nil {
 		return nil, err
 	}
-	proc := newPolicyProcessor(set.Logger, pcfg, telemetry)
+	proc := newPolicyProcessor(set.Logger, pcfg, telemetry, set.Resource)
 
 	return processorhelper.NewTraces(
 		ctx,
@@ -68,7 +68,7 @@ func createMetricsProcessor(
 	if err != nil {
 		return nil, err
 	}
-	proc := newPolicyProcessor(set.Logger, pcfg, telemetry)
+	proc := newPolicyProcessor(set.Logger, pcfg, telemetry, set.Resource)
 
 	return processorhelper.NewMetrics(
 		ctx,
@@ -93,7 +93,7 @@ func createLogsProcessor(
 	if err != nil {
 		return nil, err
 	}
-	proc := newPolicyProcessor(set.Logger, pcfg, telemetry)
+	proc := newPolicyProcessor(set.Logger, pcfg, telemetry, set.Resource)
 
 	return processorhelper.NewLogs(
 		ctx,
