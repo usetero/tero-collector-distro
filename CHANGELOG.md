@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.8.0](https://github.com/usetero/tero-collector-distro/compare/v0.7.1...v0.8.0) (2026-04-03)
+
+
+### Features
+
+* update to latest policy go ([#62](https://github.com/usetero/tero-collector-distro/issues/62)) ([ea80e1a](https://github.com/usetero/tero-collector-distro/commit/ea80e1aa5957bbcbac79e154ed4cea176eca6e59))
+
+
+### Bug Fixes
+
+* more missing components ([#59](https://github.com/usetero/tero-collector-distro/issues/59)) ([0840364](https://github.com/usetero/tero-collector-distro/commit/0840364c27d50394e4ca804fcd202027febc663b))
+
 ## [0.7.1](https://github.com/usetero/tero-collector-distro/compare/v0.7.0...v0.7.1) (2026-03-30)
 
 
