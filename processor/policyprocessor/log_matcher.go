@@ -31,9 +31,15 @@ func LogMatcher(ctx LogContext, ref policy.LogFieldRef) []byte {
 			return nil
 		case policy.LogFieldTraceID:
 			traceID := ctx.Record.TraceID()
+			if traceID.IsEmpty() {
+				return nil
+			}
 			return []byte(hex.EncodeToString(traceID[:]))
 		case policy.LogFieldSpanID:
 			spanID := ctx.Record.SpanID()
+			if spanID.IsEmpty() {
+				return nil
+			}
 			return []byte(hex.EncodeToString(spanID[:]))
 		case policy.LogFieldEventName:
 			if name := ctx.Record.EventName(); name != "" {
