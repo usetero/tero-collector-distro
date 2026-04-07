@@ -51,9 +51,11 @@ func (p *policyProcessor) start(_ context.Context, _ component.Host) error {
 	// Create engine with the registry
 	p.engine = policy.NewPolicyEngine(p.registry)
 
-	// Set callback for when policies are recompiled
-	p.registry.SetOnRecompile(func() {
-		p.logger.Info("Policies recompiled")
+	// Set callback for when policies are recompiled.
+	p.registry.SetOnRecompile(func(err error) {
+		if err != nil {
+			p.logger.Error("Policy recompile error", zap.Error(err))
+		}
 	})
 
 	// Build service metadata from collector resource attributes
