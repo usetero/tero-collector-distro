@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.2](https://github.com/usetero/tero-collector-distro/compare/v0.9.1...v0.9.2) (2026-04-23)
+
+
+### Bug Fixes
+
+* allow setting zeroes ([#70](https://github.com/usetero/tero-collector-distro/issues/70)) ([d997864](https://github.com/usetero/tero-collector-distro/commit/d997864f00ef430a7ccf66dd35b5db3b36148df0))
+
 ## [0.9.1](https://github.com/usetero/tero-collector-distro/compare/v0.9.0...v0.9.1) (2026-04-23)
 
 
