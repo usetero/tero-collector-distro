@@ -69,7 +69,10 @@ func (p *policyProcessor) start(_ context.Context, _ component.Host) error {
 		})
 
 	// Load providers from config
-	cfg := &policy.Config{Providers: p.config.Providers}
+	cfg := &policy.Config{
+		Providers:                 p.config.Providers,
+		IncludeZeroHitPolicyStats: p.config.IncludeZeroHitPolicyStats,
+	}
 	providers, err := loader.Load(cfg)
 	if err != nil {
 		return err
