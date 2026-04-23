@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.1](https://github.com/usetero/tero-collector-distro/compare/v0.9.0...v0.9.1) (2026-04-23)
+
+
+### Bug Fixes
+
+* bump to latest and error on bad compile ([#65](https://github.com/usetero/tero-collector-distro/issues/65)) ([2e0ac87](https://github.com/usetero/tero-collector-distro/commit/2e0ac87f304fbb7080c487d19e0f83004ed3f763))
+
 ## [0.9.0](https://github.com/usetero/tero-collector-distro/compare/v0.8.0...v0.9.0) (2026-04-06)
 
 
