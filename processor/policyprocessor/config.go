@@ -11,6 +11,8 @@ import (
 type Config struct {
 	// Providers is the list of policy providers to use.
 	Providers []policy.ProviderConfig `mapstructure:"providers"`
+	// IncludeZeroHitPolicyStats controls whether stats include policies with zero hits.
+	IncludeZeroHitPolicyStats bool `mapstructure:"include_zero_hit_policy_stats"`
 }
 
 var _ component.Config = (*Config)(nil)
