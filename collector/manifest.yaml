@@ -11,6 +11,9 @@ extensions:
       github.com/open-telemetry/opentelemetry-collector-contrib/extension/basicauthextension
       v0.148.0
   - gomod: >-
+      github.com/open-telemetry/opentelemetry-collector-contrib/extension/opampextension
+      v0.148.0
+  - gomod: >-
       github.com/open-telemetry/opentelemetry-collector-contrib/extension/bearertokenauthextension
       v0.148.0
   - gomod: >-
@@ -46,6 +49,9 @@ processors:
       v0.148.0
   - gomod: >-
       github.com/open-telemetry/opentelemetry-collector-contrib/processor/filterprocessor
+      v0.148.0
+  - gomod: >-
+      github.com/open-telemetry/opentelemetry-collector-contrib/processor/remotetapprocessor
       v0.148.0
   - gomod: >-
       github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourceprocessor
