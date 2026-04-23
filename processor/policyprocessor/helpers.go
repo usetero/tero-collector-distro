@@ -1,8 +1,22 @@
 package policyprocessor
 
-import "go.opentelemetry.io/collector/pdata/pcommon"
+import (
+	"strings"
+
+	"go.opentelemetry.io/collector/pdata/pcommon"
+)
 
 func traversePath(attrs pcommon.Map, path []string) []byte {
+	if result := traversePathRec(attrs, path); result != nil {
+		return result
+	}
+	if result, ok := attrs.Get(strings.Join(path, ".")); ok {
+		return valueToBytes(result)
+	}
+	return nil
+}
+
+func traversePathRec(attrs pcommon.Map, path []string) []byte {
 	if len(path) == 0 {
 		return nil
 	}
@@ -20,7 +34,7 @@ func traversePath(attrs pcommon.Map, path []string) []byte {
 		return nil
 	}
 
-	return traversePath(val.Map(), path[1:])
+	return traversePathRec(val.Map(), path[1:])
 }
 
 // getNestedAttr retrieves a string value at a nested attribute path.
