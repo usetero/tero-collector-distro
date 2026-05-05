@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.10.0](https://github.com/usetero/tero-collector-distro/compare/v0.9.2...v0.10.0) (2026-05-05)
+
+
+### Features
+
+* update to v1.57.0/v0.151.0 ([#74](https://github.com/usetero/tero-collector-distro/issues/74)) ([9ef8980](https://github.com/usetero/tero-collector-distro/commit/9ef89808fb164d4a6810b7496b392a047794c450))
+
+
+### Bug Fixes
+
+* install for taskfile ([#76](https://github.com/usetero/tero-collector-distro/issues/76)) ([23cce56](https://github.com/usetero/tero-collector-distro/commit/23cce56aaa2324249ad43015537bea7431a5098c))
+
 ## [0.9.2](https://github.com/usetero/tero-collector-distro/compare/v0.9.1...v0.9.2) (2026-04-23)
 
 
