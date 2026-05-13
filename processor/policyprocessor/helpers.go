@@ -16,6 +16,34 @@ func traversePath(attrs pcommon.Map, path []string) []byte {
 	return nil
 }
 
+// pathExists reports whether the attribute path is present in attrs.
+// Matches the lookup behavior of traversePath: tries the nested path first,
+// then the flattened dotted key.
+func pathExists(attrs pcommon.Map, path []string) bool {
+	if pathExistsRec(attrs, path) {
+		return true
+	}
+	_, ok := attrs.Get(strings.Join(path, "."))
+	return ok
+}
+
+func pathExistsRec(attrs pcommon.Map, path []string) bool {
+	if len(path) == 0 {
+		return false
+	}
+	val, ok := attrs.Get(path[0])
+	if !ok {
+		return false
+	}
+	if len(path) == 1 {
+		return true
+	}
+	if val.Type() != pcommon.ValueTypeMap {
+		return false
+	}
+	return pathExistsRec(val.Map(), path[1:])
+}
+
 func traversePathRec(attrs pcommon.Map, path []string) []byte {
 	if len(path) == 0 {
 		return nil

@@ -16,7 +16,7 @@ type TraceContext struct {
 }
 
 // TraceMatcher extracts field values from a TraceContext for policy evaluation.
-// This implements policy.TraceMatchFunc[TraceContext].
+// Used as the WithTraceValue option for policy.EvaluateTrace.
 func TraceMatcher(ctx TraceContext, ref policy.TraceFieldRef) []byte {
 	if ref.IsField() {
 		switch ref.Field {
@@ -121,4 +121,59 @@ func TraceMatcher(ctx TraceContext, ref policy.TraceFieldRef) []byte {
 	}
 
 	return traversePath(attrs, ref.AttrPath)
+}
+
+// TraceExists reports whether the referenced field or attribute is set.
+// Used as the WithTraceExists option for policy.EvaluateTrace.
+func TraceExists(ctx TraceContext, ref policy.TraceFieldRef) bool {
+	if ref.IsField() {
+		switch ref.Field {
+		case policy.TraceFieldName:
+			return ctx.Span.Name() != ""
+		case policy.TraceFieldTraceID:
+			return !ctx.Span.TraceID().IsEmpty()
+		case policy.TraceFieldSpanID:
+			return !ctx.Span.SpanID().IsEmpty()
+		case policy.TraceFieldParentSpanID:
+			return !ctx.Span.ParentSpanID().IsEmpty()
+		case policy.TraceFieldTraceState:
+			return ctx.Span.TraceState().AsRaw() != ""
+		case policy.TraceFieldKind:
+			return ctx.Span.Kind() != ptrace.SpanKindUnspecified
+		case policy.TraceFieldStatus:
+			return true
+		case policy.TraceFieldEventName:
+			events := ctx.Span.Events()
+			for i := 0; i < events.Len(); i++ {
+				if events.At(i).Name() != "" {
+					return true
+				}
+			}
+			return false
+		case policy.TraceFieldScopeName:
+			return ctx.Scope.Name() != ""
+		case policy.TraceFieldScopeVersion:
+			return ctx.Scope.Version() != ""
+		case policy.TraceFieldResourceSchemaURL:
+			return ctx.ResourceSchemaURL != ""
+		case policy.TraceFieldScopeSchemaURL:
+			return ctx.ScopeSchemaURL != ""
+		default:
+			return false
+		}
+	}
+
+	var attrs pcommon.Map
+	switch {
+	case ref.IsResourceAttr():
+		attrs = ctx.Resource.Attributes()
+	case ref.IsScopeAttr():
+		attrs = ctx.Scope.Attributes()
+	case ref.IsRecordAttr():
+		attrs = ctx.Span.Attributes()
+	default:
+		return false
+	}
+
+	return pathExists(attrs, ref.AttrPath)
 }

@@ -18,7 +18,7 @@ type MetricContext struct {
 }
 
 // MetricMatcher extracts field values from a MetricContext for policy evaluation.
-// This implements policy.MetricMatchFunc[MetricContext].
+// Used as the WithMetricValue option for policy.EvaluateMetric.
 func MetricMatcher(ctx MetricContext, ref policy.MetricFieldRef) []byte {
 	if ref.IsField() {
 		switch ref.Field {
@@ -100,4 +100,47 @@ func MetricMatcher(ctx MetricContext, ref policy.MetricFieldRef) []byte {
 	}
 
 	return traversePath(attrs, ref.AttrPath)
+}
+
+// MetricExists reports whether the referenced field or attribute is set.
+// Used as the WithMetricExists option for policy.EvaluateMetric.
+func MetricExists(ctx MetricContext, ref policy.MetricFieldRef) bool {
+	if ref.IsField() {
+		switch ref.Field {
+		case policy.MetricFieldName:
+			return ctx.Metric.Name() != ""
+		case policy.MetricFieldDescription:
+			return ctx.Metric.Description() != ""
+		case policy.MetricFieldUnit:
+			return ctx.Metric.Unit() != ""
+		case policy.MetricFieldType:
+			return ctx.Metric.Type() != pmetric.MetricTypeEmpty
+		case policy.MetricFieldAggregationTemporality:
+			return ctx.AggregationTemporality != pmetric.AggregationTemporalityUnspecified
+		case policy.MetricFieldScopeName:
+			return ctx.Scope.Name() != ""
+		case policy.MetricFieldScopeVersion:
+			return ctx.Scope.Version() != ""
+		case policy.MetricFieldResourceSchemaURL:
+			return ctx.ResourceSchemaURL != ""
+		case policy.MetricFieldScopeSchemaURL:
+			return ctx.ScopeSchemaURL != ""
+		default:
+			return false
+		}
+	}
+
+	var attrs pcommon.Map
+	switch {
+	case ref.IsResourceAttr():
+		attrs = ctx.Resource.Attributes()
+	case ref.IsScopeAttr():
+		attrs = ctx.Scope.Attributes()
+	case ref.IsRecordAttr():
+		attrs = ctx.DatapointAttributes
+	default:
+		return false
+	}
+
+	return pathExists(attrs, ref.AttrPath)
 }

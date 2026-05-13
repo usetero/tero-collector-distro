@@ -18,7 +18,7 @@ type LogContext struct {
 }
 
 // LogMatcher extracts field values from a LogContext for policy evaluation.
-// This implements policy.LogMatchFunc[LogContext].
+// Used as the WithLogValue option for policy.EvaluateLog.
 func LogMatcher(ctx LogContext, ref policy.LogFieldRef) []byte {
 	if ref.IsField() {
 		switch ref.Field {
@@ -75,4 +75,35 @@ func LogMatcher(ctx LogContext, ref policy.LogFieldRef) []byte {
 	}
 
 	return traversePath(attrs, ref.AttrPath)
+}
+
+// LogExists reports whether the referenced field or attribute is set on the
+// log record. Used as the WithLogExists option for policy.EvaluateLog.
+func LogExists(ctx LogContext, ref policy.LogFieldRef) bool {
+	if ref.IsField() {
+		switch ref.Field {
+		case policy.LogFieldBody:
+			return ctx.Record.Body().Type() != pcommon.ValueTypeEmpty
+		case policy.LogFieldSeverityText:
+			return ctx.Record.SeverityText() != ""
+		case policy.LogFieldTraceID:
+			return !ctx.Record.TraceID().IsEmpty()
+		case policy.LogFieldSpanID:
+			return !ctx.Record.SpanID().IsEmpty()
+		case policy.LogFieldEventName:
+			return ctx.Record.EventName() != ""
+		case policy.LogFieldResourceSchemaURL:
+			return ctx.ResourceSchemaURL != ""
+		case policy.LogFieldScopeSchemaURL:
+			return ctx.ScopeSchemaURL != ""
+		default:
+			return false
+		}
+	}
+
+	attrs, ok := logAttrs(ctx, ref)
+	if !ok {
+		return false
+	}
+	return pathExists(attrs, ref.AttrPath)
 }
