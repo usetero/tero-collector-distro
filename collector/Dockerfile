@@ -8,7 +8,7 @@ RUN apk add --no-cache git build-base vectorscan-dev vectorscan-static pkgconf
 # Install ocb (OpenTelemetry Collector Builder)
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
-    go install go.opentelemetry.io/collector/cmd/builder@v0.148.0
+    go install go.opentelemetry.io/collector/cmd/builder@v0.151.0
 
 WORKDIR /build
 

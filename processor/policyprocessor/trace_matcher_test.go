@@ -333,44 +333,44 @@ func TestTraceMatcher_Attributes(t *testing.T) {
 			expected: nil,
 		},
 		{
-			name: "integer attribute",
+			name: "integer attribute returns nil",
 			setup: func() TraceContext {
 				span := ptrace.NewSpan()
 				span.Attributes().PutInt("http.status_code", 200)
 				return TraceContext{Span: span}
 			},
 			ref:      policy.SpanAttr("http.status_code"),
-			expected: []byte("200"),
+			expected: nil,
 		},
 		{
-			name: "boolean attribute true",
+			name: "boolean attribute true returns nil",
 			setup: func() TraceContext {
 				span := ptrace.NewSpan()
 				span.Attributes().PutBool("error", true)
 				return TraceContext{Span: span}
 			},
 			ref:      policy.SpanAttr("error"),
-			expected: []byte("true"),
+			expected: nil,
 		},
 		{
-			name: "boolean attribute false",
+			name: "boolean attribute false returns nil",
 			setup: func() TraceContext {
 				span := ptrace.NewSpan()
 				span.Attributes().PutBool("error", false)
 				return TraceContext{Span: span}
 			},
 			ref:      policy.SpanAttr("error"),
-			expected: []byte("false"),
+			expected: nil,
 		},
 		{
-			name: "double attribute",
+			name: "double attribute returns nil",
 			setup: func() TraceContext {
 				span := ptrace.NewSpan()
 				span.Attributes().PutDouble("duration", 1.5)
 				return TraceContext{Span: span}
 			},
 			ref:      policy.SpanAttr("duration"),
-			expected: []byte("1.5"),
+			expected: nil,
 		},
 	}
 

@@ -5,24 +5,51 @@ import (
 	"go.opentelemetry.io/collector/pdata/pcommon"
 )
 
-// LogTransformer applies a single transform operation to a log record.
-// It implements policy.LogTransformFunc[LogContext].
-// Returns true if the targeted field was present (hit), false if absent (miss).
-func LogTransformer(ctx LogContext, op policy.TransformOp) bool {
-	switch op.Kind {
-	case policy.TransformRemove:
-		return logRemove(ctx, op.Ref)
-	case policy.TransformRedact:
-		return logRedact(ctx, op.Ref, op.Value)
-	case policy.TransformRename:
-		return logRename(ctx, op.Ref, op.To, op.Upsert)
-	case policy.TransformAdd:
-		return logAdd(ctx, op.Ref, op.Value, op.Upsert)
+// LogOptions returns the full set of options needed for policy.EvaluateLog
+// to drive both matching and transforms on a LogContext.
+func LogOptions() []policy.LogOption[LogContext] {
+	return []policy.LogOption[LogContext]{
+		policy.WithLogValue(LogMatcher),
+		policy.WithLogExists(LogExists),
+		policy.WithLogSet(LogSet),
+		policy.WithLogDelete(LogDelete),
+		policy.WithLogMove(LogMove),
 	}
-	return false
 }
 
-func logRemove(ctx LogContext, ref policy.LogFieldRef) bool {
+// LogSet writes a string value at ref, creating the field if necessary.
+// Used as the WithLogSet option.
+func LogSet(ctx LogContext, ref policy.LogFieldRef, value string) {
+	if ref.IsField() {
+		switch ref.Field {
+		case policy.LogFieldBody:
+			ctx.Record.Body().SetStr(value)
+		case policy.LogFieldSeverityText:
+			ctx.Record.SetSeverityText(value)
+		case policy.LogFieldTraceID:
+			var tid pcommon.TraceID
+			copy(tid[:], value)
+			ctx.Record.SetTraceID(tid)
+		case policy.LogFieldSpanID:
+			var sid pcommon.SpanID
+			copy(sid[:], value)
+			ctx.Record.SetSpanID(sid)
+		case policy.LogFieldEventName:
+			ctx.Record.SetEventName(value)
+		}
+		return
+	}
+
+	attrs, ok := logAttrs(ctx, ref)
+	if !ok {
+		return
+	}
+	putNestedAttr(attrs, ref.AttrPath, value)
+}
+
+// LogDelete removes the field at ref. Returns true if it existed.
+// Used as the WithLogDelete option.
+func LogDelete(ctx LogContext, ref policy.LogFieldRef) bool {
 	if ref.IsField() {
 		switch ref.Field {
 		case policy.LogFieldBody:
@@ -53,135 +80,30 @@ func logRemove(ctx LogContext, ref policy.LogFieldRef) bool {
 	if !ok {
 		return false
 	}
-	_, exists := attrs.Get(ref.AttrPath[0])
-	if !exists {
-		return false
-	}
 	return removeNestedAttr(attrs, ref.AttrPath)
 }
 
-func logRedact(ctx LogContext, ref policy.LogFieldRef, replacement string) bool {
-	if ref.IsField() {
-		switch ref.Field {
-		case policy.LogFieldBody:
-			hit := ctx.Record.Body().Type() != pcommon.ValueTypeEmpty
-			ctx.Record.Body().SetStr(replacement)
-			return hit
-		case policy.LogFieldSeverityText:
-			hit := ctx.Record.SeverityText() != ""
-			ctx.Record.SetSeverityText(replacement)
-			return hit
-		case policy.LogFieldTraceID:
-			hit := !ctx.Record.TraceID().IsEmpty()
-			var tid pcommon.TraceID
-			copy(tid[:], replacement)
-			ctx.Record.SetTraceID(tid)
-			return hit
-		case policy.LogFieldSpanID:
-			hit := !ctx.Record.SpanID().IsEmpty()
-			var sid pcommon.SpanID
-			copy(sid[:], replacement)
-			ctx.Record.SetSpanID(sid)
-			return hit
-		case policy.LogFieldEventName:
-			hit := ctx.Record.EventName() != ""
-			ctx.Record.SetEventName(replacement)
-			return hit
-		}
-		return false
+// LogMove transfers the value at from to to, deleting from.
+// Used as the WithLogMove option.
+func LogMove(ctx LogContext, from, to policy.LogFieldRef) {
+	if from.IsField() {
+		return
 	}
-
-	attrs, ok := logAttrs(ctx, ref)
+	attrs, ok := logAttrs(ctx, from)
 	if !ok {
-		return false
+		return
 	}
-	// Only redact if the attribute exists; redacting a non-existent attribute is a no-op.
-	if _, exists := getNestedAttr(attrs, ref.AttrPath); !exists {
-		return false
-	}
-	return setNestedAttr(attrs, ref.AttrPath, replacement)
-}
-
-func logRename(ctx LogContext, ref policy.LogFieldRef, to string, upsert bool) bool {
-	if ref.IsField() {
-		return false
-	}
-
-	attrs, ok := logAttrs(ctx, ref)
-	if !ok {
-		return false
-	}
-
-	val, exists := getNestedAttr(attrs, ref.AttrPath)
+	val, exists := getNestedAttr(attrs, from.AttrPath)
 	if !exists {
-		return false
+		return
 	}
+	removeNestedAttr(attrs, from.AttrPath)
 
-	if !upsert {
-		if _, found := attrs.Get(to); found {
-			return true
-		}
-	}
-
-	removeNestedAttr(attrs, ref.AttrPath)
-	attrs.PutStr(to, val)
-	return true
-}
-
-func logAdd(ctx LogContext, ref policy.LogFieldRef, value string, upsert bool) bool {
-	if ref.IsField() {
-		switch ref.Field {
-		case policy.LogFieldBody:
-			if !upsert && ctx.Record.Body().Type() != pcommon.ValueTypeEmpty {
-				return true
-			}
-			ctx.Record.Body().SetStr(value)
-			return true
-		case policy.LogFieldSeverityText:
-			if !upsert && ctx.Record.SeverityText() != "" {
-				return true
-			}
-			ctx.Record.SetSeverityText(value)
-			return true
-		case policy.LogFieldTraceID:
-			if !upsert && !ctx.Record.TraceID().IsEmpty() {
-				return true
-			}
-			var tid pcommon.TraceID
-			copy(tid[:], value)
-			ctx.Record.SetTraceID(tid)
-			return true
-		case policy.LogFieldSpanID:
-			if !upsert && !ctx.Record.SpanID().IsEmpty() {
-				return true
-			}
-			var sid pcommon.SpanID
-			copy(sid[:], value)
-			ctx.Record.SetSpanID(sid)
-			return true
-		case policy.LogFieldEventName:
-			if !upsert && ctx.Record.EventName() != "" {
-				return true
-			}
-			ctx.Record.SetEventName(value)
-			return true
-		}
-		return false
-	}
-
-	attrs, ok := logAttrs(ctx, ref)
+	toAttrs, ok := logAttrs(ctx, to)
 	if !ok {
-		return false
+		return
 	}
-
-	if !upsert {
-		if _, exists := getNestedAttr(attrs, ref.AttrPath); exists {
-			return true
-		}
-	}
-
-	putNestedAttr(attrs, ref.AttrPath, value)
-	return true
+	putNestedAttr(toAttrs, to.AttrPath, val)
 }
 
 // logAttrs returns the attribute map for the given field ref scope.

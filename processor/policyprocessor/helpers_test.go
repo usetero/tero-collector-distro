@@ -157,53 +157,55 @@ func TestTraversePath(t *testing.T) {
 			expected: nil,
 		},
 		{
-			name: "int value at leaf",
+			// Non-string values are invisible to value matchers; an exists
+			// check still sees them, but traversePath returns nil.
+			name: "int value at leaf returns nil",
 			setup: func(m pcommon.Map) {
 				m.PutInt("count", 42)
 			},
 			path:     []string{"count"},
-			expected: []byte("42"),
+			expected: nil,
 		},
 		{
-			name: "int value via fallback",
+			name: "int value via fallback returns nil",
 			setup: func(m pcommon.Map) {
 				m.PutInt("a.b", 100)
 			},
 			path:     []string{"a", "b"},
-			expected: []byte("100"),
+			expected: nil,
 		},
 		{
-			name: "double value at leaf",
+			name: "double value at leaf returns nil",
 			setup: func(m pcommon.Map) {
 				m.PutDouble("ratio", 3.14)
 			},
 			path:     []string{"ratio"},
-			expected: []byte("3.14"),
+			expected: nil,
 		},
 		{
-			name: "bool true value",
+			name: "bool true value returns nil",
 			setup: func(m pcommon.Map) {
 				m.PutBool("enabled", true)
 			},
 			path:     []string{"enabled"},
-			expected: []byte("true"),
+			expected: nil,
 		},
 		{
-			name: "bool false value",
+			name: "bool false value returns nil",
 			setup: func(m pcommon.Map) {
 				m.PutBool("enabled", false)
 			},
 			path:     []string{"enabled"},
-			expected: []byte("false"),
+			expected: nil,
 		},
 		{
-			name: "bytes value",
+			name: "bytes value returns nil",
 			setup: func(m pcommon.Map) {
 				b := m.PutEmptyBytes("payload")
 				b.FromRaw([]byte{0x01, 0x02, 0x03})
 			},
 			path:     []string{"payload"},
-			expected: []byte{0x01, 0x02, 0x03},
+			expected: nil,
 		},
 		{
 			name: "empty string value returns nil",
@@ -241,23 +243,23 @@ func TestTraversePath(t *testing.T) {
 			expected: []byte("fallback"),
 		},
 		{
-			name: "map value at leaf returns its string serialization",
+			name: "map value at leaf returns nil",
 			setup: func(m pcommon.Map) {
 				inner := m.PutEmptyMap("obj")
 				inner.PutStr("k", "v")
 			},
 			path:     []string{"obj"},
-			expected: []byte(`{"k":"v"}`),
+			expected: nil,
 		},
 		{
-			name: "slice value at leaf returns its string serialization",
+			name: "slice value at leaf returns nil",
 			setup: func(m pcommon.Map) {
 				s := m.PutEmptySlice("list")
 				s.AppendEmpty().SetStr("a")
 				s.AppendEmpty().SetStr("b")
 			},
 			path:     []string{"list"},
-			expected: []byte(`["a","b"]`),
+			expected: nil,
 		},
 		{
 			name: "single segment path matching a key with multiple dots",
@@ -294,31 +296,31 @@ func TestTraversePath(t *testing.T) {
 			expected: []byte("fallback"),
 		},
 		{
-			name: "single segment matches integer attribute via fallback when path has one element",
+			name: "single segment matches integer attribute via fallback returns nil",
 			setup: func(m pcommon.Map) {
 				m.PutInt("answer", 42)
 			},
 			path:     []string{"answer"},
-			expected: []byte("42"),
+			expected: nil,
 		},
 		{
-			name: "deeply nested mixed types: int at leaf via nested traversal",
+			name: "deeply nested int at leaf returns nil",
 			setup: func(m pcommon.Map) {
 				lvl1 := m.PutEmptyMap("metrics")
 				lvl2 := lvl1.PutEmptyMap("counters")
 				lvl2.PutInt("requests", 1234)
 			},
 			path:     []string{"metrics", "counters", "requests"},
-			expected: []byte("1234"),
+			expected: nil,
 		},
 		{
-			name: "deeply nested mixed types: bool at leaf via nested traversal",
+			name: "deeply nested bool at leaf returns nil",
 			setup: func(m pcommon.Map) {
 				lvl1 := m.PutEmptyMap("flags")
 				lvl1.PutBool("on", true)
 			},
 			path:     []string{"flags", "on"},
-			expected: []byte("true"),
+			expected: nil,
 		},
 	}
 

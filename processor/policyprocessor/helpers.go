@@ -16,6 +16,34 @@ func traversePath(attrs pcommon.Map, path []string) []byte {
 	return nil
 }
 
+// pathExists reports whether the attribute path is present in attrs.
+// Matches the lookup behavior of traversePath: tries the nested path first,
+// then the flattened dotted key.
+func pathExists(attrs pcommon.Map, path []string) bool {
+	if pathExistsRec(attrs, path) {
+		return true
+	}
+	_, ok := attrs.Get(strings.Join(path, "."))
+	return ok
+}
+
+func pathExistsRec(attrs pcommon.Map, path []string) bool {
+	if len(path) == 0 {
+		return false
+	}
+	val, ok := attrs.Get(path[0])
+	if !ok {
+		return false
+	}
+	if len(path) == 1 {
+		return true
+	}
+	if val.Type() != pcommon.ValueTypeMap {
+		return false
+	}
+	return pathExistsRec(val.Map(), path[1:])
+}
+
 func traversePathRec(attrs pcommon.Map, path []string) []byte {
 	if len(path) == 0 {
 		return nil
@@ -121,25 +149,18 @@ func putNestedAttr(attrs pcommon.Map, path []string, value string) {
 	putNestedAttr(val.Map(), path[1:], value)
 }
 
+// valueToBytes returns the textual bytes of v for pattern matching, or nil if
+// v is not a non-empty string. Non-string variants (int, bool, double, bytes,
+// map, slice) are invisible to value matchers per the policy spec; an exists
+// check still sees them as present, but a regex/exact match never fires and a
+// regex redact short-circuits to a no-op.
 func valueToBytes(val pcommon.Value) []byte {
-	switch val.Type() {
-	case pcommon.ValueTypeStr:
-		if s := val.Str(); s != "" {
-			return []byte(s)
-		}
-		return nil
-	case pcommon.ValueTypeInt, pcommon.ValueTypeDouble:
-		return []byte(val.AsString())
-	case pcommon.ValueTypeBool:
-		if val.Bool() {
-			return []byte("true")
-		}
-		return []byte("false")
-	case pcommon.ValueTypeBytes:
-		return val.Bytes().AsRaw()
-	case pcommon.ValueTypeMap, pcommon.ValueTypeSlice:
-		return []byte(val.AsString())
-	default:
+	if val.Type() != pcommon.ValueTypeStr {
 		return nil
 	}
+	s := val.Str()
+	if s == "" {
+		return nil
+	}
+	return []byte(s)
 }

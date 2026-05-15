@@ -6,9 +6,10 @@ import (
 	"github.com/usetero/policy-go"
 )
 
-// TraceTransformer writes a sampling threshold value back to a span's tracestate.
-// It implements policy.TraceTransformFunc[TraceContext].
-func TraceTransformer(ctx TraceContext, ref policy.TraceFieldRef, value string) {
+// TraceSet writes a value at ref on the span. Used as the WithTraceSet option
+// for policy.EvaluateTrace; the engine invokes it with SpanSamplingThreshold()
+// after a sampling decision so the threshold lands in the span's tracestate.
+func TraceSet(ctx TraceContext, ref policy.TraceFieldRef, value string) {
 	if ref.Field == policy.SpanSamplingThreshold().Field {
 		ctx.Span.TraceState().FromRaw(mergeOTTracestate(ctx.Span.TraceState().AsRaw(), "th:"+value))
 	}
