@@ -262,7 +262,7 @@ func TestMetricMatcher_Attributes(t *testing.T) {
 			expected: nil,
 		},
 		{
-			name: "integer attribute",
+			name: "integer attribute returns nil",
 			setup: func() MetricContext {
 				attrs := pcommon.NewMap()
 				attrs.PutInt("http.status_code", 200)
@@ -272,10 +272,10 @@ func TestMetricMatcher_Attributes(t *testing.T) {
 				}
 			},
 			ref:      policy.DatapointAttr("http.status_code"),
-			expected: []byte("200"),
+			expected: nil,
 		},
 		{
-			name: "boolean attribute true",
+			name: "boolean attribute true returns nil",
 			setup: func() MetricContext {
 				attrs := pcommon.NewMap()
 				attrs.PutBool("error", true)
@@ -285,10 +285,10 @@ func TestMetricMatcher_Attributes(t *testing.T) {
 				}
 			},
 			ref:      policy.DatapointAttr("error"),
-			expected: []byte("true"),
+			expected: nil,
 		},
 		{
-			name: "boolean attribute false",
+			name: "boolean attribute false returns nil",
 			setup: func() MetricContext {
 				attrs := pcommon.NewMap()
 				attrs.PutBool("error", false)
@@ -298,10 +298,10 @@ func TestMetricMatcher_Attributes(t *testing.T) {
 				}
 			},
 			ref:      policy.DatapointAttr("error"),
-			expected: []byte("false"),
+			expected: nil,
 		},
 		{
-			name: "double attribute",
+			name: "double attribute returns nil",
 			setup: func() MetricContext {
 				attrs := pcommon.NewMap()
 				attrs.PutDouble("ratio", 0.95)
@@ -311,7 +311,7 @@ func TestMetricMatcher_Attributes(t *testing.T) {
 				}
 			},
 			ref:      policy.DatapointAttr("ratio"),
-			expected: []byte("0.95"),
+			expected: nil,
 		},
 	}
 

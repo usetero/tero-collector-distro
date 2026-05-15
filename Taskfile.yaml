@@ -19,10 +19,14 @@ tasks:
   build:collector:
     desc: Build the collector binary
     dir: collector
+    vars:
+      # Pin OCB to the collector framework version; older OCB (e.g. v0.128) doesn't
+      # register a Telemetry factory, which v0.110+ binaries require at startup.
+      OCB_VERSION: v0.151.0
     cmds:
       # manifest.yaml uses /build/processor for Docker builds; rewrite to relative path for local builds
       - sed 's|/build/processor|../processor|' manifest.yaml > manifest.local.yaml
-      - builder --config=manifest.local.yaml
+      - go run go.opentelemetry.io/collector/cmd/builder@{{.OCB_VERSION}} --config=manifest.local.yaml
       - rm manifest.local.yaml
 
   build:docker:

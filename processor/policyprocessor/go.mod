@@ -1,6 +1,6 @@
 module github.com/usetero/tero-collector-distro/processor/policyprocessor
 
-go 1.25.0
+go 1.25.10
 
 require (
 	github.com/stretchr/testify v1.11.1

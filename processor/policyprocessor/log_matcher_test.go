@@ -132,6 +132,75 @@ func TestLogMatcher_Fields(t *testing.T) {
 	}
 }
 
+// TestLogExists_Body pins the spec rule: an empty-string body is missing,
+// but a non-string body value (int, bool, map, …) is still present so that
+// must-exist matchers continue to fire.
+func TestLogExists_Body(t *testing.T) {
+	tests := []struct {
+		name   string
+		setup  func() LogContext
+		exists bool
+	}{
+		{
+			name:   "body unset",
+			setup:  func() LogContext { return LogContext{Record: plog.NewLogRecord()} },
+			exists: false,
+		},
+		{
+			name: "body empty string",
+			setup: func() LogContext {
+				lr := plog.NewLogRecord()
+				lr.Body().SetStr("")
+				return LogContext{Record: lr}
+			},
+			exists: false,
+		},
+		{
+			name: "body non-empty string",
+			setup: func() LogContext {
+				lr := plog.NewLogRecord()
+				lr.Body().SetStr("hello")
+				return LogContext{Record: lr}
+			},
+			exists: true,
+		},
+		{
+			name: "body int value still exists",
+			setup: func() LogContext {
+				lr := plog.NewLogRecord()
+				lr.Body().SetInt(42)
+				return LogContext{Record: lr}
+			},
+			exists: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := tt.setup()
+			got := LogExists(ctx, policy.LogBody())
+			if got != tt.exists {
+				t.Errorf("expected %v, got %v", tt.exists, got)
+			}
+		})
+	}
+}
+
+// TestLogExists_NonStringAttribute pins the asymmetry: non-string attribute
+// values are invisible to LogMatcher (Value) but visible to LogExists.
+func TestLogExists_NonStringAttribute(t *testing.T) {
+	lr := plog.NewLogRecord()
+	lr.Attributes().PutInt("count", 42)
+	ctx := LogContext{Record: lr}
+
+	if !LogExists(ctx, policy.LogAttr("count")) {
+		t.Errorf("LogExists should be true for an int attribute")
+	}
+	if v := LogMatcher(ctx, policy.LogAttr("count")); v != nil {
+		t.Errorf("LogMatcher should return nil for an int attribute, got %q", v)
+	}
+}
+
 func TestLogMatcher_Attributes(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -222,44 +291,45 @@ func TestLogMatcher_Attributes(t *testing.T) {
 			expected: nil,
 		},
 		{
-			name: "integer attribute",
+			// Non-string attributes are invisible to value matchers per the spec.
+			name: "integer attribute returns nil",
 			setup: func() LogContext {
 				lr := plog.NewLogRecord()
 				lr.Attributes().PutInt("count", 42)
 				return LogContext{Record: lr}
 			},
 			ref:      policy.LogAttr("count"),
-			expected: []byte("42"),
+			expected: nil,
 		},
 		{
-			name: "boolean attribute true",
+			name: "boolean attribute true returns nil",
 			setup: func() LogContext {
 				lr := plog.NewLogRecord()
 				lr.Attributes().PutBool("enabled", true)
 				return LogContext{Record: lr}
 			},
 			ref:      policy.LogAttr("enabled"),
-			expected: []byte("true"),
+			expected: nil,
 		},
 		{
-			name: "boolean attribute false",
+			name: "boolean attribute false returns nil",
 			setup: func() LogContext {
 				lr := plog.NewLogRecord()
 				lr.Attributes().PutBool("enabled", false)
 				return LogContext{Record: lr}
 			},
 			ref:      policy.LogAttr("enabled"),
-			expected: []byte("false"),
+			expected: nil,
 		},
 		{
-			name: "double attribute",
+			name: "double attribute returns nil",
 			setup: func() LogContext {
 				lr := plog.NewLogRecord()
 				lr.Attributes().PutDouble("rate", 3.14)
 				return LogContext{Record: lr}
 			},
 			ref:      policy.LogAttr("rate"),
-			expected: []byte("3.14"),
+			expected: nil,
 		},
 	}
 

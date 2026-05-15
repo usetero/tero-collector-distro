@@ -83,7 +83,18 @@ func LogExists(ctx LogContext, ref policy.LogFieldRef) bool {
 	if ref.IsField() {
 		switch ref.Field {
 		case policy.LogFieldBody:
-			return ctx.Record.Body().Type() != pcommon.ValueTypeEmpty
+			// An empty-string body is treated as missing, matching the spec rule
+			// for log_field accessors: body_exists ⇔ body is set AND not the
+			// empty string. Non-string body values (int, bool, map, ...) are
+			// still "present" — only their textual value is invisible to matchers.
+			body := ctx.Record.Body()
+			if body.Type() == pcommon.ValueTypeEmpty {
+				return false
+			}
+			if body.Type() == pcommon.ValueTypeStr && body.Str() == "" {
+				return false
+			}
+			return true
 		case policy.LogFieldSeverityText:
 			return ctx.Record.SeverityText() != ""
 		case policy.LogFieldTraceID:
