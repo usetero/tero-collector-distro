@@ -17,26 +17,30 @@ type MetricContext struct {
 	ScopeSchemaURL         string
 }
 
-// MetricMatcher extracts field values from a MetricContext for policy evaluation.
+// MetricValue extracts string-typed field values as bytes for regex/substring/redact matching.
+// Returns nil for absent fields and for non-textual types.
 // Used as the WithMetricValue option for policy.EvaluateMetric.
-func MetricMatcher(ctx MetricContext, ref policy.MetricFieldRef) []byte {
+func MetricValue(ctx MetricContext, ref policy.MetricFieldRef) []byte {
 	if ref.IsField() {
 		switch ref.Field {
 		case policy.MetricFieldName:
-			if name := ctx.Metric.Name(); name != "" {
-				return []byte(name)
+			s := ctx.Metric.Name()
+			if s == "" {
+				return nil
 			}
-			return nil
+			return []byte(s)
 		case policy.MetricFieldDescription:
-			if desc := ctx.Metric.Description(); desc != "" {
-				return []byte(desc)
+			s := ctx.Metric.Description()
+			if s == "" {
+				return nil
 			}
-			return nil
+			return []byte(s)
 		case policy.MetricFieldUnit:
-			if unit := ctx.Metric.Unit(); unit != "" {
-				return []byte(unit)
+			s := ctx.Metric.Unit()
+			if s == "" {
+				return nil
 			}
-			return nil
+			return []byte(s)
 		case policy.MetricFieldType:
 			switch ctx.Metric.Type() {
 			case pmetric.MetricTypeGauge:
@@ -62,31 +66,34 @@ func MetricMatcher(ctx MetricContext, ref policy.MetricFieldRef) []byte {
 				return nil
 			}
 		case policy.MetricFieldScopeName:
-			if name := ctx.Scope.Name(); name != "" {
-				return []byte(name)
+			s := ctx.Scope.Name()
+			if s == "" {
+				return nil
 			}
-			return nil
+			return []byte(s)
 		case policy.MetricFieldScopeVersion:
-			if version := ctx.Scope.Version(); version != "" {
-				return []byte(version)
+			s := ctx.Scope.Version()
+			if s == "" {
+				return nil
 			}
-			return nil
+			return []byte(s)
 		case policy.MetricFieldResourceSchemaURL:
-			if ctx.ResourceSchemaURL == "" {
+			s := ctx.ResourceSchemaURL
+			if s == "" {
 				return nil
 			}
-			return []byte(ctx.ResourceSchemaURL)
+			return []byte(s)
 		case policy.MetricFieldScopeSchemaURL:
-			if ctx.ScopeSchemaURL == "" {
+			s := ctx.ScopeSchemaURL
+			if s == "" {
 				return nil
 			}
-			return []byte(ctx.ScopeSchemaURL)
+			return []byte(s)
 		default:
 			return nil
 		}
 	}
 
-	// Attribute lookup
 	var attrs pcommon.Map
 	switch {
 	case ref.IsResourceAttr():
@@ -100,6 +107,99 @@ func MetricMatcher(ctx MetricContext, ref policy.MetricFieldRef) []byte {
 	}
 
 	return traversePath(attrs, ref.AttrPath)
+}
+
+// MetricTypedMatcher extracts field values from a MetricContext for typed comparison (equals/gt/gte/lt/lte).
+// Returns TypedValue{} (absent) for missing fields.
+// Used as the WithMetricTypedValue option for policy.EvaluateMetric.
+func MetricTypedMatcher(ctx MetricContext, ref policy.MetricFieldRef) policy.TypedValue {
+	if ref.IsField() {
+		switch ref.Field {
+		case policy.MetricFieldName:
+			s := ctx.Metric.Name()
+			if s == "" {
+				return policy.TypedValue{}
+			}
+			return policy.TypedValueOfString(s)
+		case policy.MetricFieldDescription:
+			s := ctx.Metric.Description()
+			if s == "" {
+				return policy.TypedValue{}
+			}
+			return policy.TypedValueOfString(s)
+		case policy.MetricFieldUnit:
+			s := ctx.Metric.Unit()
+			if s == "" {
+				return policy.TypedValue{}
+			}
+			return policy.TypedValueOfString(s)
+		case policy.MetricFieldType:
+			switch ctx.Metric.Type() {
+			case pmetric.MetricTypeGauge:
+				return policy.TypedValueOfString("gauge")
+			case pmetric.MetricTypeSum:
+				return policy.TypedValueOfString("sum")
+			case pmetric.MetricTypeHistogram:
+				return policy.TypedValueOfString("histogram")
+			case pmetric.MetricTypeExponentialHistogram:
+				return policy.TypedValueOfString("exponential_histogram")
+			case pmetric.MetricTypeSummary:
+				return policy.TypedValueOfString("summary")
+			default:
+				return policy.TypedValue{}
+			}
+		case policy.MetricFieldAggregationTemporality:
+			switch ctx.AggregationTemporality {
+			case pmetric.AggregationTemporalityDelta:
+				return policy.TypedValueOfString("delta")
+			case pmetric.AggregationTemporalityCumulative:
+				return policy.TypedValueOfString("cumulative")
+			default:
+				return policy.TypedValue{}
+			}
+		case policy.MetricFieldScopeName:
+			s := ctx.Scope.Name()
+			if s == "" {
+				return policy.TypedValue{}
+			}
+			return policy.TypedValueOfString(s)
+		case policy.MetricFieldScopeVersion:
+			s := ctx.Scope.Version()
+			if s == "" {
+				return policy.TypedValue{}
+			}
+			return policy.TypedValueOfString(s)
+		case policy.MetricFieldResourceSchemaURL:
+			s := ctx.ResourceSchemaURL
+			if s == "" {
+				return policy.TypedValue{}
+			}
+			return policy.TypedValueOfString(s)
+		case policy.MetricFieldScopeSchemaURL:
+			s := ctx.ScopeSchemaURL
+			if s == "" {
+				return policy.TypedValue{}
+			}
+			return policy.TypedValueOfString(s)
+		default:
+			return policy.TypedValue{}
+		}
+	}
+
+	// Attribute lookup
+	var attrs pcommon.Map
+	switch {
+	case ref.IsResourceAttr():
+		attrs = ctx.Resource.Attributes()
+	case ref.IsScopeAttr():
+		attrs = ctx.Scope.Attributes()
+	case ref.IsRecordAttr():
+		attrs = ctx.DatapointAttributes
+	default:
+		return policy.TypedValue{}
+	}
+
+	return traversePathTyped(attrs, ref.AttrPath)
 }
 
 // MetricExists reports whether the referenced field or attribute is set.

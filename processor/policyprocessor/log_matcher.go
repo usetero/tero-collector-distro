@@ -1,8 +1,6 @@
 package policyprocessor
 
 import (
-	"encoding/hex"
-
 	"github.com/usetero/policy-go"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
@@ -17,47 +15,120 @@ type LogContext struct {
 	ScopeSchemaURL    string
 }
 
-// LogMatcher extracts field values from a LogContext for policy evaluation.
+// LogValue extracts string-typed field values as bytes for regex/substring/redact matching.
+// Returns nil for absent fields and for non-textual types (int, bool, map, etc.).
 // Used as the WithLogValue option for policy.EvaluateLog.
-func LogMatcher(ctx LogContext, ref policy.LogFieldRef) []byte {
+func LogValue(ctx LogContext, ref policy.LogFieldRef) []byte {
 	if ref.IsField() {
 		switch ref.Field {
 		case policy.LogFieldBody:
-			return valueToBytes(ctx.Record.Body())
-		case policy.LogFieldSeverityText:
-			if text := ctx.Record.SeverityText(); text != "" {
-				return []byte(text)
+			body := ctx.Record.Body()
+			if body.Type() != pcommon.ValueTypeStr {
+				return nil
 			}
-			return nil
+			s := body.Str()
+			if s == "" {
+				return nil
+			}
+			return []byte(s)
+		case policy.LogFieldSeverityText:
+			s := ctx.Record.SeverityText()
+			if s == "" {
+				return nil
+			}
+			return []byte(s)
 		case policy.LogFieldTraceID:
 			traceID := ctx.Record.TraceID()
 			if traceID.IsEmpty() {
 				return nil
 			}
-			return []byte(hex.EncodeToString(traceID[:]))
+			return traceID[:]
 		case policy.LogFieldSpanID:
 			spanID := ctx.Record.SpanID()
 			if spanID.IsEmpty() {
 				return nil
 			}
-			return []byte(hex.EncodeToString(spanID[:]))
+			return spanID[:]
 		case policy.LogFieldEventName:
-			if name := ctx.Record.EventName(); name != "" {
-				return []byte(name)
+			s := ctx.Record.EventName()
+			if s == "" {
+				return nil
 			}
-			return nil
+			return []byte(s)
 		case policy.LogFieldResourceSchemaURL:
-			if ctx.ResourceSchemaURL == "" {
+			s := ctx.ResourceSchemaURL
+			if s == "" {
 				return nil
 			}
-			return []byte(ctx.ResourceSchemaURL)
+			return []byte(s)
 		case policy.LogFieldScopeSchemaURL:
-			if ctx.ScopeSchemaURL == "" {
+			s := ctx.ScopeSchemaURL
+			if s == "" {
 				return nil
 			}
-			return []byte(ctx.ScopeSchemaURL)
+			return []byte(s)
 		default:
 			return nil
+		}
+	}
+
+	attrs, ok := logAttrs(ctx, ref)
+	if !ok {
+		return nil
+	}
+	return traversePath(attrs, ref.AttrPath)
+}
+
+// LogTypedMatcher extracts field values from a LogContext for typed comparison (equals/gt/gte/lt/lte).
+// Returns TypedValue{} (absent) for missing fields or non-textual body types.
+// Used as the WithLogTypedValue option for policy.EvaluateLog.
+func LogTypedMatcher(ctx LogContext, ref policy.LogFieldRef) policy.TypedValue {
+	if ref.IsField() {
+		switch ref.Field {
+		case policy.LogFieldBody:
+			body := ctx.Record.Body()
+			if body.Type() != pcommon.ValueTypeStr || body.Str() == "" {
+				return policy.TypedValue{}
+			}
+			return policy.TypedValueOfString(body.Str())
+		case policy.LogFieldSeverityText:
+			s := ctx.Record.SeverityText()
+			if s == "" {
+				return policy.TypedValue{}
+			}
+			return policy.TypedValueOfString(s)
+		case policy.LogFieldTraceID:
+			traceID := ctx.Record.TraceID()
+			if traceID.IsEmpty() {
+				return policy.TypedValue{}
+			}
+			return policy.TypedValueOfBytes(traceID[:])
+		case policy.LogFieldSpanID:
+			spanID := ctx.Record.SpanID()
+			if spanID.IsEmpty() {
+				return policy.TypedValue{}
+			}
+			return policy.TypedValueOfBytes(spanID[:])
+		case policy.LogFieldEventName:
+			s := ctx.Record.EventName()
+			if s == "" {
+				return policy.TypedValue{}
+			}
+			return policy.TypedValueOfString(s)
+		case policy.LogFieldResourceSchemaURL:
+			s := ctx.ResourceSchemaURL
+			if s == "" {
+				return policy.TypedValue{}
+			}
+			return policy.TypedValueOfString(s)
+		case policy.LogFieldScopeSchemaURL:
+			s := ctx.ScopeSchemaURL
+			if s == "" {
+				return policy.TypedValue{}
+			}
+			return policy.TypedValueOfString(s)
+		default:
+			return policy.TypedValue{}
 		}
 	}
 
@@ -71,10 +142,10 @@ func LogMatcher(ctx LogContext, ref policy.LogFieldRef) []byte {
 	case ref.IsRecordAttr():
 		attrs = ctx.Record.Attributes()
 	default:
-		return nil
+		return policy.TypedValue{}
 	}
 
-	return traversePath(attrs, ref.AttrPath)
+	return traversePathTyped(attrs, ref.AttrPath)
 }
 
 // LogExists reports whether the referenced field or attribute is set on the

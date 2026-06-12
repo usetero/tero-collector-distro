@@ -1,6 +1,7 @@
 package policyprocessor
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/usetero/policy-go"
@@ -13,7 +14,7 @@ func TestTraceMatcher_Fields(t *testing.T) {
 		name     string
 		setup    func() TraceContext
 		ref      policy.TraceFieldRef
-		expected []byte
+		expected policy.TypedValue
 	}{
 		{
 			name: "span name",
@@ -23,7 +24,7 @@ func TestTraceMatcher_Fields(t *testing.T) {
 				return TraceContext{Span: span}
 			},
 			ref:      policy.TraceFieldRef{Field: policy.TraceFieldName},
-			expected: []byte("GET /api/users"),
+			expected: policy.TypedValueOfString("GET /api/users"),
 		},
 		{
 			name: "span name empty",
@@ -32,7 +33,7 @@ func TestTraceMatcher_Fields(t *testing.T) {
 				return TraceContext{Span: span}
 			},
 			ref:      policy.TraceFieldRef{Field: policy.TraceFieldName},
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 		{
 			name: "trace id",
@@ -43,7 +44,7 @@ func TestTraceMatcher_Fields(t *testing.T) {
 				return TraceContext{Span: span}
 			},
 			ref:      policy.TraceFieldRef{Field: policy.TraceFieldTraceID},
-			expected: []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
+			expected: policy.TypedValueOfBytes([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}),
 		},
 		{
 			name: "trace id empty",
@@ -52,7 +53,7 @@ func TestTraceMatcher_Fields(t *testing.T) {
 				return TraceContext{Span: span}
 			},
 			ref:      policy.TraceFieldRef{Field: policy.TraceFieldTraceID},
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 		{
 			name: "span id",
@@ -63,7 +64,7 @@ func TestTraceMatcher_Fields(t *testing.T) {
 				return TraceContext{Span: span}
 			},
 			ref:      policy.TraceFieldRef{Field: policy.TraceFieldSpanID},
-			expected: []byte{1, 2, 3, 4, 5, 6, 7, 8},
+			expected: policy.TypedValueOfBytes([]byte{1, 2, 3, 4, 5, 6, 7, 8}),
 		},
 		{
 			name: "span id empty",
@@ -72,7 +73,7 @@ func TestTraceMatcher_Fields(t *testing.T) {
 				return TraceContext{Span: span}
 			},
 			ref:      policy.TraceFieldRef{Field: policy.TraceFieldSpanID},
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 		{
 			name: "parent span id",
@@ -83,7 +84,7 @@ func TestTraceMatcher_Fields(t *testing.T) {
 				return TraceContext{Span: span}
 			},
 			ref:      policy.TraceFieldRef{Field: policy.TraceFieldParentSpanID},
-			expected: []byte{8, 7, 6, 5, 4, 3, 2, 1},
+			expected: policy.TypedValueOfBytes([]byte{8, 7, 6, 5, 4, 3, 2, 1}),
 		},
 		{
 			name: "parent span id empty",
@@ -92,7 +93,7 @@ func TestTraceMatcher_Fields(t *testing.T) {
 				return TraceContext{Span: span}
 			},
 			ref:      policy.TraceFieldRef{Field: policy.TraceFieldParentSpanID},
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 		{
 			name: "trace state",
@@ -102,7 +103,7 @@ func TestTraceMatcher_Fields(t *testing.T) {
 				return TraceContext{Span: span}
 			},
 			ref:      policy.TraceFieldRef{Field: policy.TraceFieldTraceState},
-			expected: []byte("vendor1=value1,vendor2=value2"),
+			expected: policy.TypedValueOfString("vendor1=value1,vendor2=value2"),
 		},
 		{
 			name: "trace state empty",
@@ -111,7 +112,7 @@ func TestTraceMatcher_Fields(t *testing.T) {
 				return TraceContext{Span: span}
 			},
 			ref:      policy.TraceFieldRef{Field: policy.TraceFieldTraceState},
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 		{
 			name: "span kind internal",
@@ -121,7 +122,7 @@ func TestTraceMatcher_Fields(t *testing.T) {
 				return TraceContext{Span: span}
 			},
 			ref:      policy.TraceFieldRef{Field: policy.TraceFieldKind},
-			expected: []byte("internal"),
+			expected: policy.TypedValueOfString("internal"),
 		},
 		{
 			name: "span kind server",
@@ -131,7 +132,7 @@ func TestTraceMatcher_Fields(t *testing.T) {
 				return TraceContext{Span: span}
 			},
 			ref:      policy.TraceFieldRef{Field: policy.TraceFieldKind},
-			expected: []byte("server"),
+			expected: policy.TypedValueOfString("server"),
 		},
 		{
 			name: "span kind client",
@@ -141,7 +142,7 @@ func TestTraceMatcher_Fields(t *testing.T) {
 				return TraceContext{Span: span}
 			},
 			ref:      policy.TraceFieldRef{Field: policy.TraceFieldKind},
-			expected: []byte("client"),
+			expected: policy.TypedValueOfString("client"),
 		},
 		{
 			name: "span kind producer",
@@ -151,7 +152,7 @@ func TestTraceMatcher_Fields(t *testing.T) {
 				return TraceContext{Span: span}
 			},
 			ref:      policy.TraceFieldRef{Field: policy.TraceFieldKind},
-			expected: []byte("producer"),
+			expected: policy.TypedValueOfString("producer"),
 		},
 		{
 			name: "span kind consumer",
@@ -161,7 +162,7 @@ func TestTraceMatcher_Fields(t *testing.T) {
 				return TraceContext{Span: span}
 			},
 			ref:      policy.TraceFieldRef{Field: policy.TraceFieldKind},
-			expected: []byte("consumer"),
+			expected: policy.TypedValueOfString("consumer"),
 		},
 		{
 			name: "span kind unspecified",
@@ -171,7 +172,7 @@ func TestTraceMatcher_Fields(t *testing.T) {
 				return TraceContext{Span: span}
 			},
 			ref:      policy.TraceFieldRef{Field: policy.TraceFieldKind},
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 		{
 			name: "status ok",
@@ -181,7 +182,7 @@ func TestTraceMatcher_Fields(t *testing.T) {
 				return TraceContext{Span: span}
 			},
 			ref:      policy.TraceFieldRef{Field: policy.TraceFieldStatus},
-			expected: []byte("ok"),
+			expected: policy.TypedValueOfString("ok"),
 		},
 		{
 			name: "status error",
@@ -191,7 +192,7 @@ func TestTraceMatcher_Fields(t *testing.T) {
 				return TraceContext{Span: span}
 			},
 			ref:      policy.TraceFieldRef{Field: policy.TraceFieldStatus},
-			expected: []byte("error"),
+			expected: policy.TypedValueOfString("error"),
 		},
 		{
 			name: "status unset",
@@ -201,7 +202,7 @@ func TestTraceMatcher_Fields(t *testing.T) {
 				return TraceContext{Span: span}
 			},
 			ref:      policy.TraceFieldRef{Field: policy.TraceFieldStatus},
-			expected: []byte("unset"),
+			expected: policy.TypedValueOfString("unset"),
 		},
 		{
 			name: "scope name",
@@ -214,7 +215,7 @@ func TestTraceMatcher_Fields(t *testing.T) {
 				}
 			},
 			ref:      policy.TraceFieldRef{Field: policy.TraceFieldScopeName},
-			expected: []byte("my.instrumentation.library"),
+			expected: policy.TypedValueOfString("my.instrumentation.library"),
 		},
 		{
 			name: "scope name empty",
@@ -225,7 +226,7 @@ func TestTraceMatcher_Fields(t *testing.T) {
 				}
 			},
 			ref:      policy.TraceFieldRef{Field: policy.TraceFieldScopeName},
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 		{
 			name: "scope version",
@@ -238,7 +239,7 @@ func TestTraceMatcher_Fields(t *testing.T) {
 				}
 			},
 			ref:      policy.TraceFieldRef{Field: policy.TraceFieldScopeVersion},
-			expected: []byte("1.2.3"),
+			expected: policy.TypedValueOfString("1.2.3"),
 		},
 		{
 			name: "scope version empty",
@@ -249,21 +250,16 @@ func TestTraceMatcher_Fields(t *testing.T) {
 				}
 			},
 			ref:      policy.TraceFieldRef{Field: policy.TraceFieldScopeVersion},
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := tt.setup()
-			result := TraceMatcher(ctx, tt.ref)
-
-			if tt.expected == nil && result != nil {
-				t.Errorf("expected nil, got %q", result)
-			} else if tt.expected != nil && result == nil {
-				t.Errorf("expected %q, got nil", tt.expected)
-			} else if string(result) != string(tt.expected) {
-				t.Errorf("expected %q, got %q", tt.expected, result)
+			result := TraceTypedMatcher(ctx, tt.ref)
+			if !reflect.DeepEqual(tt.expected, result) {
+				t.Errorf("expected %+v, got %+v", tt.expected, result)
 			}
 		})
 	}
@@ -274,7 +270,7 @@ func TestTraceMatcher_Attributes(t *testing.T) {
 		name     string
 		setup    func() TraceContext
 		ref      policy.TraceFieldRef
-		expected []byte
+		expected policy.TypedValue
 	}{
 		{
 			name: "resource attribute simple",
@@ -287,7 +283,7 @@ func TestTraceMatcher_Attributes(t *testing.T) {
 				}
 			},
 			ref:      policy.TraceResourceAttr("service.name"),
-			expected: []byte("my-service"),
+			expected: policy.TypedValueOfString("my-service"),
 		},
 		{
 			name: "scope attribute simple",
@@ -300,7 +296,7 @@ func TestTraceMatcher_Attributes(t *testing.T) {
 				}
 			},
 			ref:      policy.TraceScopeAttr("library.version"),
-			expected: []byte("1.0.0"),
+			expected: policy.TypedValueOfString("1.0.0"),
 		},
 		{
 			name: "span attribute simple",
@@ -310,7 +306,7 @@ func TestTraceMatcher_Attributes(t *testing.T) {
 				return TraceContext{Span: span}
 			},
 			ref:      policy.SpanAttr("http.method"),
-			expected: []byte("GET"),
+			expected: policy.TypedValueOfString("GET"),
 		},
 		{
 			name: "span attribute nested",
@@ -321,7 +317,7 @@ func TestTraceMatcher_Attributes(t *testing.T) {
 				return TraceContext{Span: span}
 			},
 			ref:      policy.SpanAttr("http", "method"),
-			expected: []byte("POST"),
+			expected: policy.TypedValueOfString("POST"),
 		},
 		{
 			name: "attribute not found",
@@ -330,61 +326,56 @@ func TestTraceMatcher_Attributes(t *testing.T) {
 				return TraceContext{Span: span}
 			},
 			ref:      policy.SpanAttr("nonexistent"),
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 		{
-			name: "integer attribute returns nil",
+			name: "integer attribute returns typed int",
 			setup: func() TraceContext {
 				span := ptrace.NewSpan()
 				span.Attributes().PutInt("http.status_code", 200)
 				return TraceContext{Span: span}
 			},
 			ref:      policy.SpanAttr("http.status_code"),
-			expected: nil,
+			expected: policy.TypedValueOfInt(200),
 		},
 		{
-			name: "boolean attribute true returns nil",
+			name: "boolean attribute true",
 			setup: func() TraceContext {
 				span := ptrace.NewSpan()
 				span.Attributes().PutBool("error", true)
 				return TraceContext{Span: span}
 			},
 			ref:      policy.SpanAttr("error"),
-			expected: nil,
+			expected: policy.TypedValueOfBool(true),
 		},
 		{
-			name: "boolean attribute false returns nil",
+			name: "boolean attribute false",
 			setup: func() TraceContext {
 				span := ptrace.NewSpan()
 				span.Attributes().PutBool("error", false)
 				return TraceContext{Span: span}
 			},
 			ref:      policy.SpanAttr("error"),
-			expected: nil,
+			expected: policy.TypedValueOfBool(false),
 		},
 		{
-			name: "double attribute returns nil",
+			name: "double attribute",
 			setup: func() TraceContext {
 				span := ptrace.NewSpan()
 				span.Attributes().PutDouble("duration", 1.5)
 				return TraceContext{Span: span}
 			},
 			ref:      policy.SpanAttr("duration"),
-			expected: nil,
+			expected: policy.TypedValueOfDouble(1.5),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := tt.setup()
-			result := TraceMatcher(ctx, tt.ref)
-
-			if tt.expected == nil && result != nil {
-				t.Errorf("expected nil, got %q", result)
-			} else if tt.expected != nil && result == nil {
-				t.Errorf("expected %q, got nil", tt.expected)
-			} else if string(result) != string(tt.expected) {
-				t.Errorf("expected %q, got %q", tt.expected, result)
+			result := TraceTypedMatcher(ctx, tt.ref)
+			if !reflect.DeepEqual(tt.expected, result) {
+				t.Errorf("expected %+v, got %+v", tt.expected, result)
 			}
 		})
 	}

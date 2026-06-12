@@ -9,7 +9,8 @@ import (
 // to drive both matching and transforms on a LogContext.
 func LogOptions() []policy.LogOption[LogContext] {
 	return []policy.LogOption[LogContext]{
-		policy.WithLogValue(LogMatcher),
+		policy.WithLogValue(LogValue),
+		policy.WithLogTypedValue(LogTypedMatcher),
 		policy.WithLogExists(LogExists),
 		policy.WithLogSet(LogSet),
 		policy.WithLogDelete(LogDelete),

@@ -99,7 +99,8 @@ func (p *policyProcessor) shutdown(_ context.Context) error {
 
 func (p *policyProcessor) processTraces(ctx context.Context, td ptrace.Traces) (ptrace.Traces, error) {
 	traceOpts := []policy.TraceOption[TraceContext]{
-		policy.WithTraceValue(TraceMatcher),
+		policy.WithTraceValue(TraceValue),
+		policy.WithTraceTypedValue(TraceTypedMatcher),
 		policy.WithTraceExists(TraceExists),
 		policy.WithTraceSet(TraceSet),
 	}
@@ -163,7 +164,8 @@ func (p *policyProcessor) processMetrics(ctx context.Context, md pmetric.Metrics
 // metricOptions returns the option slice used by policy.EvaluateMetric.
 func metricOptions() []policy.MetricOption[MetricContext] {
 	return []policy.MetricOption[MetricContext]{
-		policy.WithMetricValue(MetricMatcher),
+		policy.WithMetricValue(MetricValue),
+		policy.WithMetricTypedValue(MetricTypedMatcher),
 		policy.WithMetricExists(MetricExists),
 	}
 }
