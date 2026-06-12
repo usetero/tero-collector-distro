@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.0](https://github.com/usetero/tero-collector-distro/compare/v0.11.0...v0.12.0) (2026-06-12)
+
+
+### Features
+
+* upgrade to latest policy-go ([#84](https://github.com/usetero/tero-collector-distro/issues/84)) ([0592731](https://github.com/usetero/tero-collector-distro/commit/0592731e4a61579d9338890480c58d71608dc647))
+
 ## [0.11.0](https://github.com/usetero/tero-collector-distro/compare/v0.10.0...v0.11.0) (2026-05-15)
 
 
