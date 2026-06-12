@@ -1,6 +1,7 @@
 package policyprocessor
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/usetero/policy-go"
@@ -13,7 +14,7 @@ func TestMetricMatcher_Fields(t *testing.T) {
 		name     string
 		setup    func() MetricContext
 		ref      policy.MetricFieldRef
-		expected []byte
+		expected policy.TypedValue
 	}{
 		{
 			name: "metric name",
@@ -23,7 +24,7 @@ func TestMetricMatcher_Fields(t *testing.T) {
 				return MetricContext{Metric: m}
 			},
 			ref:      policy.MetricName(),
-			expected: []byte("http.server.duration"),
+			expected: policy.TypedValueOfString("http.server.duration"),
 		},
 		{
 			name: "metric name empty",
@@ -32,7 +33,7 @@ func TestMetricMatcher_Fields(t *testing.T) {
 				return MetricContext{Metric: m}
 			},
 			ref:      policy.MetricName(),
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 		{
 			name: "metric description",
@@ -42,7 +43,7 @@ func TestMetricMatcher_Fields(t *testing.T) {
 				return MetricContext{Metric: m}
 			},
 			ref:      policy.MetricDescription(),
-			expected: []byte("Duration of HTTP server requests"),
+			expected: policy.TypedValueOfString("Duration of HTTP server requests"),
 		},
 		{
 			name: "metric description empty",
@@ -51,7 +52,7 @@ func TestMetricMatcher_Fields(t *testing.T) {
 				return MetricContext{Metric: m}
 			},
 			ref:      policy.MetricDescription(),
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 		{
 			name: "metric unit",
@@ -61,7 +62,7 @@ func TestMetricMatcher_Fields(t *testing.T) {
 				return MetricContext{Metric: m}
 			},
 			ref:      policy.MetricUnit(),
-			expected: []byte("ms"),
+			expected: policy.TypedValueOfString("ms"),
 		},
 		{
 			name: "metric unit empty",
@@ -70,7 +71,7 @@ func TestMetricMatcher_Fields(t *testing.T) {
 				return MetricContext{Metric: m}
 			},
 			ref:      policy.MetricUnit(),
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 		{
 			name: "metric type gauge",
@@ -80,7 +81,7 @@ func TestMetricMatcher_Fields(t *testing.T) {
 				return MetricContext{Metric: m}
 			},
 			ref:      policy.MetricType(),
-			expected: []byte("gauge"),
+			expected: policy.TypedValueOfString("gauge"),
 		},
 		{
 			name: "metric type sum",
@@ -90,7 +91,7 @@ func TestMetricMatcher_Fields(t *testing.T) {
 				return MetricContext{Metric: m}
 			},
 			ref:      policy.MetricType(),
-			expected: []byte("sum"),
+			expected: policy.TypedValueOfString("sum"),
 		},
 		{
 			name: "metric type histogram",
@@ -100,7 +101,7 @@ func TestMetricMatcher_Fields(t *testing.T) {
 				return MetricContext{Metric: m}
 			},
 			ref:      policy.MetricType(),
-			expected: []byte("histogram"),
+			expected: policy.TypedValueOfString("histogram"),
 		},
 		{
 			name: "aggregation temporality cumulative",
@@ -111,7 +112,7 @@ func TestMetricMatcher_Fields(t *testing.T) {
 				}
 			},
 			ref:      policy.MetricAggregationTemporality(),
-			expected: []byte("cumulative"),
+			expected: policy.TypedValueOfString("cumulative"),
 		},
 		{
 			name: "aggregation temporality delta",
@@ -122,7 +123,7 @@ func TestMetricMatcher_Fields(t *testing.T) {
 				}
 			},
 			ref:      policy.MetricAggregationTemporality(),
-			expected: []byte("delta"),
+			expected: policy.TypedValueOfString("delta"),
 		},
 		{
 			name: "scope name",
@@ -135,7 +136,7 @@ func TestMetricMatcher_Fields(t *testing.T) {
 				}
 			},
 			ref:      policy.MetricFieldRef{Field: policy.MetricFieldScopeName},
-			expected: []byte("my.instrumentation.library"),
+			expected: policy.TypedValueOfString("my.instrumentation.library"),
 		},
 		{
 			name: "scope name empty",
@@ -146,7 +147,7 @@ func TestMetricMatcher_Fields(t *testing.T) {
 				}
 			},
 			ref:      policy.MetricFieldRef{Field: policy.MetricFieldScopeName},
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 		{
 			name: "scope version",
@@ -159,7 +160,7 @@ func TestMetricMatcher_Fields(t *testing.T) {
 				}
 			},
 			ref:      policy.MetricFieldRef{Field: policy.MetricFieldScopeVersion},
-			expected: []byte("1.2.3"),
+			expected: policy.TypedValueOfString("1.2.3"),
 		},
 		{
 			name: "scope version empty",
@@ -170,21 +171,16 @@ func TestMetricMatcher_Fields(t *testing.T) {
 				}
 			},
 			ref:      policy.MetricFieldRef{Field: policy.MetricFieldScopeVersion},
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := tt.setup()
-			result := MetricMatcher(ctx, tt.ref)
-
-			if tt.expected == nil && result != nil {
-				t.Errorf("expected nil, got %q", result)
-			} else if tt.expected != nil && result == nil {
-				t.Errorf("expected %q, got nil", tt.expected)
-			} else if string(result) != string(tt.expected) {
-				t.Errorf("expected %q, got %q", tt.expected, result)
+			result := MetricTypedMatcher(ctx, tt.ref)
+			if !reflect.DeepEqual(tt.expected, result) {
+				t.Errorf("expected %+v, got %+v", tt.expected, result)
 			}
 		})
 	}
@@ -195,7 +191,7 @@ func TestMetricMatcher_Attributes(t *testing.T) {
 		name     string
 		setup    func() MetricContext
 		ref      policy.MetricFieldRef
-		expected []byte
+		expected policy.TypedValue
 	}{
 		{
 			name: "resource attribute simple",
@@ -208,7 +204,7 @@ func TestMetricMatcher_Attributes(t *testing.T) {
 				}
 			},
 			ref:      policy.MetricResourceAttr("service.name"),
-			expected: []byte("my-service"),
+			expected: policy.TypedValueOfString("my-service"),
 		},
 		{
 			name: "scope attribute simple",
@@ -221,7 +217,7 @@ func TestMetricMatcher_Attributes(t *testing.T) {
 				}
 			},
 			ref:      policy.MetricScopeAttr("library.version"),
-			expected: []byte("1.0.0"),
+			expected: policy.TypedValueOfString("1.0.0"),
 		},
 		{
 			name: "datapoint attribute simple",
@@ -234,7 +230,7 @@ func TestMetricMatcher_Attributes(t *testing.T) {
 				}
 			},
 			ref:      policy.DatapointAttr("http.method"),
-			expected: []byte("GET"),
+			expected: policy.TypedValueOfString("GET"),
 		},
 		{
 			name: "datapoint attribute nested",
@@ -248,7 +244,7 @@ func TestMetricMatcher_Attributes(t *testing.T) {
 				}
 			},
 			ref:      policy.DatapointAttr("http", "method"),
-			expected: []byte("POST"),
+			expected: policy.TypedValueOfString("POST"),
 		},
 		{
 			name: "attribute not found",
@@ -259,10 +255,10 @@ func TestMetricMatcher_Attributes(t *testing.T) {
 				}
 			},
 			ref:      policy.DatapointAttr("nonexistent"),
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 		{
-			name: "integer attribute returns nil",
+			name: "integer attribute returns typed int",
 			setup: func() MetricContext {
 				attrs := pcommon.NewMap()
 				attrs.PutInt("http.status_code", 200)
@@ -272,10 +268,10 @@ func TestMetricMatcher_Attributes(t *testing.T) {
 				}
 			},
 			ref:      policy.DatapointAttr("http.status_code"),
-			expected: nil,
+			expected: policy.TypedValueOfInt(200),
 		},
 		{
-			name: "boolean attribute true returns nil",
+			name: "boolean attribute true",
 			setup: func() MetricContext {
 				attrs := pcommon.NewMap()
 				attrs.PutBool("error", true)
@@ -285,10 +281,10 @@ func TestMetricMatcher_Attributes(t *testing.T) {
 				}
 			},
 			ref:      policy.DatapointAttr("error"),
-			expected: nil,
+			expected: policy.TypedValueOfBool(true),
 		},
 		{
-			name: "boolean attribute false returns nil",
+			name: "boolean attribute false",
 			setup: func() MetricContext {
 				attrs := pcommon.NewMap()
 				attrs.PutBool("error", false)
@@ -298,10 +294,10 @@ func TestMetricMatcher_Attributes(t *testing.T) {
 				}
 			},
 			ref:      policy.DatapointAttr("error"),
-			expected: nil,
+			expected: policy.TypedValueOfBool(false),
 		},
 		{
-			name: "double attribute returns nil",
+			name: "double attribute",
 			setup: func() MetricContext {
 				attrs := pcommon.NewMap()
 				attrs.PutDouble("ratio", 0.95)
@@ -311,21 +307,16 @@ func TestMetricMatcher_Attributes(t *testing.T) {
 				}
 			},
 			ref:      policy.DatapointAttr("ratio"),
-			expected: nil,
+			expected: policy.TypedValueOfDouble(0.95),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := tt.setup()
-			result := MetricMatcher(ctx, tt.ref)
-
-			if tt.expected == nil && result != nil {
-				t.Errorf("expected nil, got %q", result)
-			} else if tt.expected != nil && result == nil {
-				t.Errorf("expected %q, got nil", tt.expected)
-			} else if string(result) != string(tt.expected) {
-				t.Errorf("expected %q, got %q", tt.expected, result)
+			result := MetricTypedMatcher(ctx, tt.ref)
+			if !reflect.DeepEqual(tt.expected, result) {
+				t.Errorf("expected %+v, got %+v", tt.expected, result)
 			}
 		})
 	}

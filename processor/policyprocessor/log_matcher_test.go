@@ -1,6 +1,7 @@
 package policyprocessor
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/usetero/policy-go"
@@ -13,7 +14,7 @@ func TestLogMatcher_Fields(t *testing.T) {
 		name     string
 		setup    func() LogContext
 		ref      policy.LogFieldRef
-		expected []byte
+		expected policy.TypedValue
 	}{
 		{
 			name: "body string",
@@ -23,7 +24,7 @@ func TestLogMatcher_Fields(t *testing.T) {
 				return LogContext{Record: lr}
 			},
 			ref:      policy.LogBody(),
-			expected: []byte("hello world"),
+			expected: policy.TypedValueOfString("hello world"),
 		},
 		{
 			name: "body empty",
@@ -32,7 +33,7 @@ func TestLogMatcher_Fields(t *testing.T) {
 				return LogContext{Record: lr}
 			},
 			ref:      policy.LogBody(),
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 		{
 			name: "severity text",
@@ -42,7 +43,7 @@ func TestLogMatcher_Fields(t *testing.T) {
 				return LogContext{Record: lr}
 			},
 			ref:      policy.LogSeverityText(),
-			expected: []byte("ERROR"),
+			expected: policy.TypedValueOfString("ERROR"),
 		},
 		{
 			name: "severity text empty",
@@ -51,7 +52,7 @@ func TestLogMatcher_Fields(t *testing.T) {
 				return LogContext{Record: lr}
 			},
 			ref:      policy.LogSeverityText(),
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 		{
 			name: "trace id",
@@ -63,7 +64,7 @@ func TestLogMatcher_Fields(t *testing.T) {
 				return LogContext{Record: lr}
 			},
 			ref:      policy.LogTraceID(),
-			expected: []byte("0102030405060708090a0b0c0d0e0f10"),
+			expected: policy.TypedValueOfBytes([]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10}),
 		},
 		{
 			name: "trace id empty",
@@ -72,7 +73,7 @@ func TestLogMatcher_Fields(t *testing.T) {
 				return LogContext{Record: lr}
 			},
 			ref:      policy.LogTraceID(),
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 		{
 			name: "span id",
@@ -84,7 +85,7 @@ func TestLogMatcher_Fields(t *testing.T) {
 				return LogContext{Record: lr}
 			},
 			ref:      policy.LogSpanID(),
-			expected: []byte("0102030405060708"),
+			expected: policy.TypedValueOfBytes([]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}),
 		},
 		{
 			name: "span id empty",
@@ -93,7 +94,7 @@ func TestLogMatcher_Fields(t *testing.T) {
 				return LogContext{Record: lr}
 			},
 			ref:      policy.LogSpanID(),
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 		{
 			name: "event name",
@@ -103,7 +104,7 @@ func TestLogMatcher_Fields(t *testing.T) {
 				return LogContext{Record: lr}
 			},
 			ref:      policy.LogFieldRef{Field: policy.LogFieldEventName},
-			expected: []byte("user.login"),
+			expected: policy.TypedValueOfString("user.login"),
 		},
 		{
 			name: "event name missing",
@@ -112,21 +113,16 @@ func TestLogMatcher_Fields(t *testing.T) {
 				return LogContext{Record: lr}
 			},
 			ref:      policy.LogFieldRef{Field: policy.LogFieldEventName},
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := tt.setup()
-			result := LogMatcher(ctx, tt.ref)
-
-			if tt.expected == nil && result != nil {
-				t.Errorf("expected nil, got %q", result)
-			} else if tt.expected != nil && result == nil {
-				t.Errorf("expected %q, got nil", tt.expected)
-			} else if string(result) != string(tt.expected) {
-				t.Errorf("expected %q, got %q", tt.expected, result)
+			result := LogTypedMatcher(ctx, tt.ref)
+			if !reflect.DeepEqual(tt.expected, result) {
+				t.Errorf("expected %+v, got %+v", tt.expected, result)
 			}
 		})
 	}
@@ -186,9 +182,10 @@ func TestLogExists_Body(t *testing.T) {
 	}
 }
 
-// TestLogExists_NonStringAttribute pins the asymmetry: non-string attribute
-// values are invisible to LogMatcher (Value) but visible to LogExists.
-func TestLogExists_NonStringAttribute(t *testing.T) {
+// TestLogTypedMatcher_NonStringAttribute verifies that LogTypedMatcher returns
+// typed values for non-string attributes (int, bool, double), while LogExists
+// also reports them as present.
+func TestLogTypedMatcher_NonStringAttribute(t *testing.T) {
 	lr := plog.NewLogRecord()
 	lr.Attributes().PutInt("count", 42)
 	ctx := LogContext{Record: lr}
@@ -196,8 +193,9 @@ func TestLogExists_NonStringAttribute(t *testing.T) {
 	if !LogExists(ctx, policy.LogAttr("count")) {
 		t.Errorf("LogExists should be true for an int attribute")
 	}
-	if v := LogMatcher(ctx, policy.LogAttr("count")); v != nil {
-		t.Errorf("LogMatcher should return nil for an int attribute, got %q", v)
+	v := LogTypedMatcher(ctx, policy.LogAttr("count"))
+	if !reflect.DeepEqual(v, policy.TypedValueOfInt(42)) {
+		t.Errorf("LogTypedMatcher should return TypedValueOfInt(42) for an int attribute, got %+v", v)
 	}
 }
 
@@ -206,7 +204,7 @@ func TestLogMatcher_Attributes(t *testing.T) {
 		name     string
 		setup    func() LogContext
 		ref      policy.LogFieldRef
-		expected []byte
+		expected policy.TypedValue
 	}{
 		{
 			name: "resource attribute simple",
@@ -216,7 +214,7 @@ func TestLogMatcher_Attributes(t *testing.T) {
 				return LogContext{Resource: resource}
 			},
 			ref:      policy.LogResourceAttr("service.name"),
-			expected: []byte("my-service"),
+			expected: policy.TypedValueOfString("my-service"),
 		},
 		{
 			name: "scope attribute simple",
@@ -226,7 +224,7 @@ func TestLogMatcher_Attributes(t *testing.T) {
 				return LogContext{Scope: scope}
 			},
 			ref:      policy.LogScopeAttr("library.version"),
-			expected: []byte("1.0.0"),
+			expected: policy.TypedValueOfString("1.0.0"),
 		},
 		{
 			name: "record attribute simple",
@@ -236,7 +234,7 @@ func TestLogMatcher_Attributes(t *testing.T) {
 				return LogContext{Record: lr}
 			},
 			ref:      policy.LogAttr("user.id"),
-			expected: []byte("12345"),
+			expected: policy.TypedValueOfString("12345"),
 		},
 		{
 			name: "nested attribute two levels",
@@ -247,7 +245,7 @@ func TestLogMatcher_Attributes(t *testing.T) {
 				return LogContext{Record: lr}
 			},
 			ref:      policy.LogAttr("http", "method"),
-			expected: []byte("GET"),
+			expected: policy.TypedValueOfString("GET"),
 		},
 		{
 			name: "nested attribute three levels",
@@ -259,7 +257,7 @@ func TestLogMatcher_Attributes(t *testing.T) {
 				return LogContext{Record: lr}
 			},
 			ref:      policy.LogAttr("http", "request", "path"),
-			expected: []byte("/api/users"),
+			expected: policy.TypedValueOfString("/api/users"),
 		},
 		{
 			name: "attribute not found",
@@ -268,7 +266,7 @@ func TestLogMatcher_Attributes(t *testing.T) {
 				return LogContext{Record: lr}
 			},
 			ref:      policy.LogAttr("nonexistent"),
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 		{
 			name: "nested attribute partial path not found",
@@ -278,7 +276,7 @@ func TestLogMatcher_Attributes(t *testing.T) {
 				return LogContext{Record: lr}
 			},
 			ref:      policy.LogAttr("http", "nonexistent"),
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 		{
 			name: "nested path on non-map value",
@@ -288,62 +286,56 @@ func TestLogMatcher_Attributes(t *testing.T) {
 				return LogContext{Record: lr}
 			},
 			ref:      policy.LogAttr("http", "method"),
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 		{
-			// Non-string attributes are invisible to value matchers per the spec.
-			name: "integer attribute returns nil",
+			name: "integer attribute returns typed int",
 			setup: func() LogContext {
 				lr := plog.NewLogRecord()
 				lr.Attributes().PutInt("count", 42)
 				return LogContext{Record: lr}
 			},
 			ref:      policy.LogAttr("count"),
-			expected: nil,
+			expected: policy.TypedValueOfInt(42),
 		},
 		{
-			name: "boolean attribute true returns nil",
+			name: "boolean attribute true",
 			setup: func() LogContext {
 				lr := plog.NewLogRecord()
 				lr.Attributes().PutBool("enabled", true)
 				return LogContext{Record: lr}
 			},
 			ref:      policy.LogAttr("enabled"),
-			expected: nil,
+			expected: policy.TypedValueOfBool(true),
 		},
 		{
-			name: "boolean attribute false returns nil",
+			name: "boolean attribute false",
 			setup: func() LogContext {
 				lr := plog.NewLogRecord()
 				lr.Attributes().PutBool("enabled", false)
 				return LogContext{Record: lr}
 			},
 			ref:      policy.LogAttr("enabled"),
-			expected: nil,
+			expected: policy.TypedValueOfBool(false),
 		},
 		{
-			name: "double attribute returns nil",
+			name: "double attribute",
 			setup: func() LogContext {
 				lr := plog.NewLogRecord()
 				lr.Attributes().PutDouble("rate", 3.14)
 				return LogContext{Record: lr}
 			},
 			ref:      policy.LogAttr("rate"),
-			expected: nil,
+			expected: policy.TypedValueOfDouble(3.14),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := tt.setup()
-			result := LogMatcher(ctx, tt.ref)
-
-			if tt.expected == nil && result != nil {
-				t.Errorf("expected nil, got %q", result)
-			} else if tt.expected != nil && result == nil {
-				t.Errorf("expected %q, got nil", tt.expected)
-			} else if string(result) != string(tt.expected) {
-				t.Errorf("expected %q, got %q", tt.expected, result)
+			result := LogTypedMatcher(ctx, tt.ref)
+			if !reflect.DeepEqual(tt.expected, result) {
+				t.Errorf("expected %+v, got %+v", tt.expected, result)
 			}
 		})
 	}

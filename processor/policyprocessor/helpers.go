@@ -3,6 +3,7 @@ package policyprocessor
 import (
 	"strings"
 
+	"github.com/usetero/policy-go"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 )
 
@@ -149,11 +150,6 @@ func putNestedAttr(attrs pcommon.Map, path []string, value string) {
 	putNestedAttr(val.Map(), path[1:], value)
 }
 
-// valueToBytes returns the textual bytes of v for pattern matching, or nil if
-// v is not a non-empty string. Non-string variants (int, bool, double, bytes,
-// map, slice) are invisible to value matchers per the policy spec; an exists
-// check still sees them as present, but a regex/exact match never fires and a
-// regex redact short-circuits to a no-op.
 func valueToBytes(val pcommon.Value) []byte {
 	if val.Type() != pcommon.ValueTypeStr {
 		return nil
@@ -163,4 +159,52 @@ func valueToBytes(val pcommon.Value) []byte {
 		return nil
 	}
 	return []byte(s)
+}
+
+func traversePathTyped(attrs pcommon.Map, path []string) policy.TypedValue {
+	if result := traversePathRecTyped(attrs, path); result.Kind != policy.TypedValueAbsent {
+		return result
+	}
+	if result, ok := attrs.Get(strings.Join(path, ".")); ok {
+		return valueToTypedValue(result)
+	}
+	return policy.TypedValue{}
+}
+
+func traversePathRecTyped(attrs pcommon.Map, path []string) policy.TypedValue {
+	if len(path) == 0 {
+		return policy.TypedValue{}
+	}
+
+	val, ok := attrs.Get(path[0])
+	if !ok {
+		return policy.TypedValue{}
+	}
+
+	if len(path) == 1 {
+		return valueToTypedValue(val)
+	}
+
+	if val.Type() != pcommon.ValueTypeMap {
+		return policy.TypedValue{}
+	}
+
+	return traversePathRecTyped(val.Map(), path[1:])
+}
+
+func valueToTypedValue(val pcommon.Value) policy.TypedValue {
+	switch val.Type() {
+	case pcommon.ValueTypeStr:
+		return policy.TypedValueOfString(val.Str())
+	case pcommon.ValueTypeInt:
+		return policy.TypedValueOfInt(val.Int())
+	case pcommon.ValueTypeDouble:
+		return policy.TypedValueOfDouble(val.Double())
+	case pcommon.ValueTypeBool:
+		return policy.TypedValueOfBool(val.Bool())
+	case pcommon.ValueTypeBytes:
+		return policy.TypedValueOfBytes(val.Bytes().AsRaw())
+	default:
+		return policy.TypedValue{}
+	}
 }

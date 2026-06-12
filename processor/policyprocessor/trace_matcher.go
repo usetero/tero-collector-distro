@@ -15,16 +15,18 @@ type TraceContext struct {
 	ScopeSchemaURL    string
 }
 
-// TraceMatcher extracts field values from a TraceContext for policy evaluation.
+// TraceValue extracts string-typed field values as bytes for regex/substring/redact matching.
+// Returns nil for absent fields and for non-textual types.
 // Used as the WithTraceValue option for policy.EvaluateTrace.
-func TraceMatcher(ctx TraceContext, ref policy.TraceFieldRef) []byte {
+func TraceValue(ctx TraceContext, ref policy.TraceFieldRef) []byte {
 	if ref.IsField() {
 		switch ref.Field {
 		case policy.TraceFieldName:
-			if name := ctx.Span.Name(); name != "" {
-				return []byte(name)
+			s := ctx.Span.Name()
+			if s == "" {
+				return nil
 			}
-			return nil
+			return []byte(s)
 		case policy.TraceFieldTraceID:
 			traceID := ctx.Span.TraceID()
 			if traceID.IsEmpty() {
@@ -44,10 +46,11 @@ func TraceMatcher(ctx TraceContext, ref policy.TraceFieldRef) []byte {
 			}
 			return parentSpanID[:]
 		case policy.TraceFieldTraceState:
-			if traceState := ctx.Span.TraceState().AsRaw(); traceState != "" {
-				return []byte(traceState)
+			s := ctx.Span.TraceState().AsRaw()
+			if s == "" {
+				return nil
 			}
-			return nil
+			return []byte(s)
 		case policy.TraceFieldKind:
 			switch ctx.Span.Kind() {
 			case ptrace.SpanKindInternal:
@@ -83,31 +86,34 @@ func TraceMatcher(ctx TraceContext, ref policy.TraceFieldRef) []byte {
 			}
 			return nil
 		case policy.TraceFieldScopeName:
-			if name := ctx.Scope.Name(); name != "" {
-				return []byte(name)
+			s := ctx.Scope.Name()
+			if s == "" {
+				return nil
 			}
-			return nil
+			return []byte(s)
 		case policy.TraceFieldScopeVersion:
-			if version := ctx.Scope.Version(); version != "" {
-				return []byte(version)
+			s := ctx.Scope.Version()
+			if s == "" {
+				return nil
 			}
-			return nil
+			return []byte(s)
 		case policy.TraceFieldResourceSchemaURL:
-			if ctx.ResourceSchemaURL == "" {
+			s := ctx.ResourceSchemaURL
+			if s == "" {
 				return nil
 			}
-			return []byte(ctx.ResourceSchemaURL)
+			return []byte(s)
 		case policy.TraceFieldScopeSchemaURL:
-			if ctx.ScopeSchemaURL == "" {
+			s := ctx.ScopeSchemaURL
+			if s == "" {
 				return nil
 			}
-			return []byte(ctx.ScopeSchemaURL)
+			return []byte(s)
 		default:
 			return nil
 		}
 	}
 
-	// Attribute lookup
 	var attrs pcommon.Map
 	switch {
 	case ref.IsResourceAttr():
@@ -121,6 +127,121 @@ func TraceMatcher(ctx TraceContext, ref policy.TraceFieldRef) []byte {
 	}
 
 	return traversePath(attrs, ref.AttrPath)
+}
+
+// TraceTypedMatcher extracts field values from a TraceContext for typed comparison (equals/gt/gte/lt/lte).
+// Returns TypedValue{} (absent) for missing fields.
+// Used as the WithTraceTypedValue option for policy.EvaluateTrace.
+func TraceTypedMatcher(ctx TraceContext, ref policy.TraceFieldRef) policy.TypedValue {
+	if ref.IsField() {
+		switch ref.Field {
+		case policy.TraceFieldName:
+			s := ctx.Span.Name()
+			if s == "" {
+				return policy.TypedValue{}
+			}
+			return policy.TypedValueOfString(s)
+		case policy.TraceFieldTraceID:
+			traceID := ctx.Span.TraceID()
+			if traceID.IsEmpty() {
+				return policy.TypedValue{}
+			}
+			return policy.TypedValueOfBytes(traceID[:])
+		case policy.TraceFieldSpanID:
+			spanID := ctx.Span.SpanID()
+			if spanID.IsEmpty() {
+				return policy.TypedValue{}
+			}
+			return policy.TypedValueOfBytes(spanID[:])
+		case policy.TraceFieldParentSpanID:
+			parentSpanID := ctx.Span.ParentSpanID()
+			if parentSpanID.IsEmpty() {
+				return policy.TypedValue{}
+			}
+			return policy.TypedValueOfBytes(parentSpanID[:])
+		case policy.TraceFieldTraceState:
+			s := ctx.Span.TraceState().AsRaw()
+			if s == "" {
+				return policy.TypedValue{}
+			}
+			return policy.TypedValueOfString(s)
+		case policy.TraceFieldKind:
+			switch ctx.Span.Kind() {
+			case ptrace.SpanKindInternal:
+				return policy.TypedValueOfString("internal")
+			case ptrace.SpanKindServer:
+				return policy.TypedValueOfString("server")
+			case ptrace.SpanKindClient:
+				return policy.TypedValueOfString("client")
+			case ptrace.SpanKindProducer:
+				return policy.TypedValueOfString("producer")
+			case ptrace.SpanKindConsumer:
+				return policy.TypedValueOfString("consumer")
+			default:
+				return policy.TypedValue{}
+			}
+		case policy.TraceFieldStatus:
+			switch ctx.Span.Status().Code() {
+			case ptrace.StatusCodeOk:
+				return policy.TypedValueOfString("ok")
+			case ptrace.StatusCodeError:
+				return policy.TypedValueOfString("error")
+			case ptrace.StatusCodeUnset:
+				return policy.TypedValueOfString("unset")
+			default:
+				return policy.TypedValue{}
+			}
+		case policy.TraceFieldEventName:
+			events := ctx.Span.Events()
+			for i := 0; i < events.Len(); i++ {
+				if name := events.At(i).Name(); name != "" {
+					return policy.TypedValueOfString(name)
+				}
+			}
+			return policy.TypedValue{}
+		case policy.TraceFieldScopeName:
+			s := ctx.Scope.Name()
+			if s == "" {
+				return policy.TypedValue{}
+			}
+			return policy.TypedValueOfString(s)
+		case policy.TraceFieldScopeVersion:
+			s := ctx.Scope.Version()
+			if s == "" {
+				return policy.TypedValue{}
+			}
+			return policy.TypedValueOfString(s)
+		case policy.TraceFieldResourceSchemaURL:
+			s := ctx.ResourceSchemaURL
+			if s == "" {
+				return policy.TypedValue{}
+			}
+			return policy.TypedValueOfString(s)
+		case policy.TraceFieldScopeSchemaURL:
+			s := ctx.ScopeSchemaURL
+			if s == "" {
+				return policy.TypedValue{}
+			}
+			return policy.TypedValueOfString(s)
+		default:
+			return policy.TypedValue{}
+		}
+	}
+
+	// Attribute lookup
+	var attrs pcommon.Map
+	switch {
+	case ref.IsResourceAttr():
+		attrs = ctx.Resource.Attributes()
+	case ref.IsScopeAttr():
+		attrs = ctx.Scope.Attributes()
+	case ref.IsRecordAttr():
+		attrs = ctx.Span.Attributes()
+	default:
+		return policy.TypedValue{}
+	}
+
+	return traversePathTyped(attrs, ref.AttrPath)
 }
 
 // TraceExists reports whether the referenced field or attribute is set.
