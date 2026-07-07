@@ -6,7 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/usetero/policy-go"
+	"github.com/usetero/policy-go/backend/hyperscan"
+	"github.com/usetero/policy-go/policy"
 	policyv1 "github.com/usetero/policy-go/proto/tero/policy/v1"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/ptrace"
@@ -30,7 +31,7 @@ func (p *staticTraceProvider) Subscribe(callback policy.PolicyCallback) error {
 func (p *staticTraceProvider) SetStatsCollector(collector policy.StatsCollector) {}
 
 func createTestTraceProcessor(t *testing.T, policies []*policyv1.Policy) *policyProcessor {
-	registry := policy.NewPolicyRegistry()
+	registry := policy.NewPolicyRegistry(policy.WithRegexBackend(hyperscan.New()))
 	engine := policy.NewPolicyEngine(registry)
 
 	provider := &staticTraceProvider{policies: policies}
@@ -770,6 +771,292 @@ func TestProcessTraces_AllSpanKinds(t *testing.T) {
 			spans := result.ResourceSpans().At(0).ScopeSpans().At(0).Spans()
 			assert.Equal(t, 1, spans.Len())
 			assert.Equal(t, "other", spans.At(0).Name())
+		})
+	}
+}
+
+// TestProcessTraces_TypedMatchers exhaustively covers equals/gt/gte/lt/lte
+// typed comparison matchers end-to-end: a drop-on-match policy is compiled
+// and evaluated against a single span with the "value" attribute set per
+// case (or left unset for the absent-field cases).
+func TestProcessTraces_TypedMatchers(t *testing.T) {
+	attrPath := &policyv1.AttributePath{Path: []string{"value"}}
+
+	tests := []struct {
+		name     string
+		setAttr  func(attrs pcommon.Map)
+		matcher  *policyv1.TraceMatcher
+		wantDrop bool
+	}{
+		{
+			name:    "equals_bool_true_match",
+			setAttr: func(a pcommon.Map) { a.PutBool("value", true) },
+			matcher: &policyv1.TraceMatcher{
+				Field: &policyv1.TraceMatcher_SpanAttribute{SpanAttribute: attrPath},
+				Match: &policyv1.TraceMatcher_Equals{Equals: &policyv1.Value{Value: &policyv1.Value_BoolValue{BoolValue: true}}},
+			},
+			wantDrop: true,
+		},
+		{
+			name:    "equals_bool_false_nonmatch",
+			setAttr: func(a pcommon.Map) { a.PutBool("value", true) },
+			matcher: &policyv1.TraceMatcher{
+				Field: &policyv1.TraceMatcher_SpanAttribute{SpanAttribute: attrPath},
+				Match: &policyv1.TraceMatcher_Equals{Equals: &policyv1.Value{Value: &policyv1.Value_BoolValue{BoolValue: false}}},
+			},
+			wantDrop: false,
+		},
+		{
+			name:    "equals_int_match",
+			setAttr: func(a pcommon.Map) { a.PutInt("value", 42) },
+			matcher: &policyv1.TraceMatcher{
+				Field: &policyv1.TraceMatcher_SpanAttribute{SpanAttribute: attrPath},
+				Match: &policyv1.TraceMatcher_Equals{Equals: &policyv1.Value{Value: &policyv1.Value_IntValue{IntValue: 42}}},
+			},
+			wantDrop: true,
+		},
+		{
+			name:    "equals_int_nonmatch",
+			setAttr: func(a pcommon.Map) { a.PutInt("value", 42) },
+			matcher: &policyv1.TraceMatcher{
+				Field: &policyv1.TraceMatcher_SpanAttribute{SpanAttribute: attrPath},
+				Match: &policyv1.TraceMatcher_Equals{Equals: &policyv1.Value{Value: &policyv1.Value_IntValue{IntValue: 43}}},
+			},
+			wantDrop: false,
+		},
+		{
+			name:    "equals_double_match",
+			setAttr: func(a pcommon.Map) { a.PutDouble("value", 3.14) },
+			matcher: &policyv1.TraceMatcher{
+				Field: &policyv1.TraceMatcher_SpanAttribute{SpanAttribute: attrPath},
+				Match: &policyv1.TraceMatcher_Equals{Equals: &policyv1.Value{Value: &policyv1.Value_DoubleValue{DoubleValue: 3.14}}},
+			},
+			wantDrop: true,
+		},
+		{
+			name:    "equals_double_nonmatch",
+			setAttr: func(a pcommon.Map) { a.PutDouble("value", 3.14) },
+			matcher: &policyv1.TraceMatcher{
+				Field: &policyv1.TraceMatcher_SpanAttribute{SpanAttribute: attrPath},
+				Match: &policyv1.TraceMatcher_Equals{Equals: &policyv1.Value{Value: &policyv1.Value_DoubleValue{DoubleValue: 2.71}}},
+			},
+			wantDrop: false,
+		},
+		{
+			name:    "equals_int_field_double_target_cross_promotion_match",
+			setAttr: func(a pcommon.Map) { a.PutInt("value", 5) },
+			matcher: &policyv1.TraceMatcher{
+				Field: &policyv1.TraceMatcher_SpanAttribute{SpanAttribute: attrPath},
+				Match: &policyv1.TraceMatcher_Equals{Equals: &policyv1.Value{Value: &policyv1.Value_DoubleValue{DoubleValue: 5.0}}},
+			},
+			wantDrop: true,
+		},
+		{
+			name:    "equals_double_field_int_target_cross_promotion_match",
+			setAttr: func(a pcommon.Map) { a.PutDouble("value", 5.0) },
+			matcher: &policyv1.TraceMatcher{
+				Field: &policyv1.TraceMatcher_SpanAttribute{SpanAttribute: attrPath},
+				Match: &policyv1.TraceMatcher_Equals{Equals: &policyv1.Value{Value: &policyv1.Value_IntValue{IntValue: 5}}},
+			},
+			wantDrop: true,
+		},
+		{
+			name: "equals_bytes_match",
+			setAttr: func(a pcommon.Map) {
+				a.PutEmptyBytes("value").FromRaw([]byte{0xDE, 0xAD, 0xBE, 0xEF})
+			},
+			matcher: &policyv1.TraceMatcher{
+				Field: &policyv1.TraceMatcher_SpanAttribute{SpanAttribute: attrPath},
+				Match: &policyv1.TraceMatcher_Equals{Equals: &policyv1.Value{Value: &policyv1.Value_HexValue{HexValue: "deadbeef"}}},
+			},
+			wantDrop: true,
+		},
+		{
+			name: "equals_bytes_nonmatch",
+			setAttr: func(a pcommon.Map) {
+				a.PutEmptyBytes("value").FromRaw([]byte{0x00})
+			},
+			matcher: &policyv1.TraceMatcher{
+				Field: &policyv1.TraceMatcher_SpanAttribute{SpanAttribute: attrPath},
+				Match: &policyv1.TraceMatcher_Equals{Equals: &policyv1.Value{Value: &policyv1.Value_HexValue{HexValue: "deadbeef"}}},
+			},
+			wantDrop: false,
+		},
+		{
+			name:    "equals_type_mismatch_string_field_int_target_nonmatch",
+			setAttr: func(a pcommon.Map) { a.PutStr("value", "hello") },
+			matcher: &policyv1.TraceMatcher{
+				Field: &policyv1.TraceMatcher_SpanAttribute{SpanAttribute: attrPath},
+				Match: &policyv1.TraceMatcher_Equals{Equals: &policyv1.Value{Value: &policyv1.Value_IntValue{IntValue: 5}}},
+			},
+			wantDrop: false,
+		},
+		{
+			name:    "equals_absent_field_nonmatch",
+			setAttr: nil,
+			matcher: &policyv1.TraceMatcher{
+				Field: &policyv1.TraceMatcher_SpanAttribute{SpanAttribute: attrPath},
+				Match: &policyv1.TraceMatcher_Equals{Equals: &policyv1.Value{Value: &policyv1.Value_IntValue{IntValue: 5}}},
+			},
+			wantDrop: false,
+		},
+		{
+			name:    "gt_int_match",
+			setAttr: func(a pcommon.Map) { a.PutInt("value", 100) },
+			matcher: &policyv1.TraceMatcher{
+				Field: &policyv1.TraceMatcher_SpanAttribute{SpanAttribute: attrPath},
+				Match: &policyv1.TraceMatcher_Gt{Gt: &policyv1.NumericValue{Value: &policyv1.NumericValue_IntValue{IntValue: 50}}},
+			},
+			wantDrop: true,
+		},
+		{
+			name:    "gt_int_nonmatch_equal_boundary",
+			setAttr: func(a pcommon.Map) { a.PutInt("value", 50) },
+			matcher: &policyv1.TraceMatcher{
+				Field: &policyv1.TraceMatcher_SpanAttribute{SpanAttribute: attrPath},
+				Match: &policyv1.TraceMatcher_Gt{Gt: &policyv1.NumericValue{Value: &policyv1.NumericValue_IntValue{IntValue: 50}}},
+			},
+			wantDrop: false,
+		},
+		{
+			name:    "gt_int_nonmatch_less",
+			setAttr: func(a pcommon.Map) { a.PutInt("value", 10) },
+			matcher: &policyv1.TraceMatcher{
+				Field: &policyv1.TraceMatcher_SpanAttribute{SpanAttribute: attrPath},
+				Match: &policyv1.TraceMatcher_Gt{Gt: &policyv1.NumericValue{Value: &policyv1.NumericValue_IntValue{IntValue: 50}}},
+			},
+			wantDrop: false,
+		},
+		{
+			name:    "gte_int_match_equal_boundary",
+			setAttr: func(a pcommon.Map) { a.PutInt("value", 50) },
+			matcher: &policyv1.TraceMatcher{
+				Field: &policyv1.TraceMatcher_SpanAttribute{SpanAttribute: attrPath},
+				Match: &policyv1.TraceMatcher_Gte{Gte: &policyv1.NumericValue{Value: &policyv1.NumericValue_IntValue{IntValue: 50}}},
+			},
+			wantDrop: true,
+		},
+		{
+			name:    "gte_int_match_greater",
+			setAttr: func(a pcommon.Map) { a.PutInt("value", 51) },
+			matcher: &policyv1.TraceMatcher{
+				Field: &policyv1.TraceMatcher_SpanAttribute{SpanAttribute: attrPath},
+				Match: &policyv1.TraceMatcher_Gte{Gte: &policyv1.NumericValue{Value: &policyv1.NumericValue_IntValue{IntValue: 50}}},
+			},
+			wantDrop: true,
+		},
+		{
+			name:    "gte_int_nonmatch",
+			setAttr: func(a pcommon.Map) { a.PutInt("value", 49) },
+			matcher: &policyv1.TraceMatcher{
+				Field: &policyv1.TraceMatcher_SpanAttribute{SpanAttribute: attrPath},
+				Match: &policyv1.TraceMatcher_Gte{Gte: &policyv1.NumericValue{Value: &policyv1.NumericValue_IntValue{IntValue: 50}}},
+			},
+			wantDrop: false,
+		},
+		{
+			name:    "lt_double_match",
+			setAttr: func(a pcommon.Map) { a.PutDouble("value", 1.5) },
+			matcher: &policyv1.TraceMatcher{
+				Field: &policyv1.TraceMatcher_SpanAttribute{SpanAttribute: attrPath},
+				Match: &policyv1.TraceMatcher_Lt{Lt: &policyv1.NumericValue{Value: &policyv1.NumericValue_DoubleValue{DoubleValue: 2.0}}},
+			},
+			wantDrop: true,
+		},
+		{
+			name:    "lt_double_nonmatch_equal_boundary",
+			setAttr: func(a pcommon.Map) { a.PutDouble("value", 2.0) },
+			matcher: &policyv1.TraceMatcher{
+				Field: &policyv1.TraceMatcher_SpanAttribute{SpanAttribute: attrPath},
+				Match: &policyv1.TraceMatcher_Lt{Lt: &policyv1.NumericValue{Value: &policyv1.NumericValue_DoubleValue{DoubleValue: 2.0}}},
+			},
+			wantDrop: false,
+		},
+		{
+			name:    "lte_double_match_equal_boundary",
+			setAttr: func(a pcommon.Map) { a.PutDouble("value", 2.0) },
+			matcher: &policyv1.TraceMatcher{
+				Field: &policyv1.TraceMatcher_SpanAttribute{SpanAttribute: attrPath},
+				Match: &policyv1.TraceMatcher_Lte{Lte: &policyv1.NumericValue{Value: &policyv1.NumericValue_DoubleValue{DoubleValue: 2.0}}},
+			},
+			wantDrop: true,
+		},
+		{
+			name:    "lte_double_nonmatch",
+			setAttr: func(a pcommon.Map) { a.PutDouble("value", 2.1) },
+			matcher: &policyv1.TraceMatcher{
+				Field: &policyv1.TraceMatcher_SpanAttribute{SpanAttribute: attrPath},
+				Match: &policyv1.TraceMatcher_Lte{Lte: &policyv1.NumericValue{Value: &policyv1.NumericValue_DoubleValue{DoubleValue: 2.0}}},
+			},
+			wantDrop: false,
+		},
+		{
+			name:    "gt_nonnumeric_bool_field_nonmatch",
+			setAttr: func(a pcommon.Map) { a.PutBool("value", true) },
+			matcher: &policyv1.TraceMatcher{
+				Field: &policyv1.TraceMatcher_SpanAttribute{SpanAttribute: attrPath},
+				Match: &policyv1.TraceMatcher_Gt{Gt: &policyv1.NumericValue{Value: &policyv1.NumericValue_IntValue{IntValue: 5}}},
+			},
+			wantDrop: false,
+		},
+		{
+			name:    "negate_equals_match_becomes_nonmatch",
+			setAttr: func(a pcommon.Map) { a.PutInt("value", 42) },
+			matcher: &policyv1.TraceMatcher{
+				Field:  &policyv1.TraceMatcher_SpanAttribute{SpanAttribute: attrPath},
+				Match:  &policyv1.TraceMatcher_Equals{Equals: &policyv1.Value{Value: &policyv1.Value_IntValue{IntValue: 42}}},
+				Negate: true,
+			},
+			wantDrop: false,
+		},
+		{
+			name:    "negate_equals_nonmatch_becomes_match",
+			setAttr: func(a pcommon.Map) { a.PutInt("value", 42) },
+			matcher: &policyv1.TraceMatcher{
+				Field:  &policyv1.TraceMatcher_SpanAttribute{SpanAttribute: attrPath},
+				Match:  &policyv1.TraceMatcher_Equals{Equals: &policyv1.Value{Value: &policyv1.Value_IntValue{IntValue: 43}}},
+				Negate: true,
+			},
+			wantDrop: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			policies := []*policyv1.Policy{
+				{
+					Id:      "typed-drop",
+					Name:    "Typed Drop",
+					Enabled: true,
+					Target: &policyv1.Policy_Trace{
+						Trace: &policyv1.TraceTarget{
+							Match: []*policyv1.TraceMatcher{tc.matcher},
+							Keep:  dropConfig(),
+						},
+					},
+				},
+			}
+
+			p := createTestTraceProcessor(t, policies)
+
+			traces := ptrace.NewTraces()
+			rs := traces.ResourceSpans().AppendEmpty()
+			ss := rs.ScopeSpans().AppendEmpty()
+			span := ss.Spans().AppendEmpty()
+			span.SetName("test-span")
+			if tc.setAttr != nil {
+				tc.setAttr(span.Attributes())
+			}
+
+			result, err := p.processTraces(context.Background(), traces)
+			require.NoError(t, err)
+
+			if tc.wantDrop {
+				assert.Equal(t, 0, result.ResourceSpans().Len(), "expected span to be dropped")
+			} else {
+				require.Equal(t, 1, result.ResourceSpans().Len(), "expected span to be kept")
+				assert.Equal(t, 1, result.ResourceSpans().At(0).ScopeSpans().At(0).Spans().Len())
+			}
 		})
 	}
 }

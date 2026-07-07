@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/usetero/policy-go"
+	"github.com/usetero/policy-go/backend/hyperscan"
+	"github.com/usetero/policy-go/policy"
 	policyv1 "github.com/usetero/policy-go/proto/tero/policy/v1"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
@@ -16,7 +17,7 @@ import (
 
 // Benchmark helper to create a processor with given policies.
 func createBenchmarkProcessor(b *testing.B, policies []*policyv1.Policy) *policyProcessor {
-	registry := policy.NewPolicyRegistry()
+	registry := policy.NewPolicyRegistry(policy.WithRegexBackend(hyperscan.New()))
 	engine := policy.NewPolicyEngine(registry)
 
 	provider := &staticLogProvider{policies: policies}

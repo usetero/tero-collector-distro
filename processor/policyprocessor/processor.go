@@ -3,7 +3,8 @@ package policyprocessor
 import (
 	"context"
 
-	"github.com/usetero/policy-go"
+	"github.com/usetero/policy-go/backend/hyperscan"
+	"github.com/usetero/policy-go/policy"
 	"github.com/usetero/tero-collector-distro/processor/policyprocessor/internal/metadata"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/pdata/pcommon"
@@ -46,7 +47,7 @@ func (p *policyProcessor) start(_ context.Context, _ component.Host) error {
 	)
 
 	// Create registry
-	p.registry = policy.NewPolicyRegistry()
+	p.registry = policy.NewPolicyRegistry(policy.WithRegexBackend(hyperscan.New()))
 
 	// Create engine with the registry
 	p.engine = policy.NewPolicyEngine(p.registry)
@@ -70,8 +71,7 @@ func (p *policyProcessor) start(_ context.Context, _ component.Host) error {
 
 	// Load providers from config
 	cfg := &policy.Config{
-		Providers:                 p.config.Providers,
-		IncludeZeroHitPolicyStats: p.config.IncludeZeroHitPolicyStats,
+		Providers: p.config.Providers,
 	}
 	providers, err := loader.Load(cfg)
 	if err != nil {
