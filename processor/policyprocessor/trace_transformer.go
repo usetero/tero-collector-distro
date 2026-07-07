@@ -3,7 +3,7 @@ package policyprocessor
 import (
 	"strings"
 
-	"github.com/usetero/policy-go"
+	"github.com/usetero/policy-go/policy"
 )
 
 // TraceSet writes a value at ref on the span. Used as the WithTraceSet option

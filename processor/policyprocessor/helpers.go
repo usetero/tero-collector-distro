@@ -3,7 +3,7 @@ package policyprocessor
 import (
 	"strings"
 
-	"github.com/usetero/policy-go"
+	"github.com/usetero/policy-go/policy"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 )
 

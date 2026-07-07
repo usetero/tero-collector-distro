@@ -6,7 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/usetero/policy-go"
+	"github.com/usetero/policy-go/backend/hyperscan"
+	"github.com/usetero/policy-go/policy"
 	policyv1 "github.com/usetero/policy-go/proto/tero/policy/v1"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/ptrace"
@@ -30,7 +31,7 @@ func (p *staticTraceProvider) Subscribe(callback policy.PolicyCallback) error {
 func (p *staticTraceProvider) SetStatsCollector(collector policy.StatsCollector) {}
 
 func createTestTraceProcessor(t *testing.T, policies []*policyv1.Policy) *policyProcessor {
-	registry := policy.NewPolicyRegistry()
+	registry := policy.NewPolicyRegistry(policy.WithRegexBackend(hyperscan.New()))
 	engine := policy.NewPolicyEngine(registry)
 
 	provider := &staticTraceProvider{policies: policies}

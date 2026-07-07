@@ -3,7 +3,7 @@ package policyprocessor
 import (
 	"fmt"
 
-	"github.com/usetero/policy-go"
+	"github.com/usetero/policy-go/policy"
 	"go.opentelemetry.io/collector/component"
 )
 
@@ -11,8 +11,6 @@ import (
 type Config struct {
 	// Providers is the list of policy providers to use.
 	Providers []policy.ProviderConfig `mapstructure:"providers"`
-	// IncludeZeroHitPolicyStats controls whether stats include policies with zero hits.
-	IncludeZeroHitPolicyStats bool `mapstructure:"include_zero_hit_policy_stats"`
 }
 
 var _ component.Config = (*Config)(nil)

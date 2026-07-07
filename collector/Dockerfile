@@ -1,6 +1,6 @@
-# syntax=docker/dockerfile:1.23@sha256:2780b5c3bab67f1f76c781860de469442999ed1a0d7992a5efdf2cffc0e3d769
+# syntax=docker/dockerfile:1.25@sha256:0adf442eae370b6087e08edc7c50b552d80ddf261576f4ebd6421006b2461f12
 # Build stage
-FROM golang:1.26-alpine@sha256:2389ebfa5b7f43eeafbd6be0c3700cc46690ef842ad962f6c5bd6be49ed82039 AS builder
+FROM golang:1.26-alpine@sha256:3ad57304ad93bbec8548a0437ad9e06a455660655d9af011d58b993f6f615648 AS builder
 
 # Install build dependencies including Vectorscan (Hyperscan fork)
 RUN apk add --no-cache git build-base vectorscan-dev vectorscan-static pkgconf
@@ -8,7 +8,7 @@ RUN apk add --no-cache git build-base vectorscan-dev vectorscan-static pkgconf
 # Install ocb (OpenTelemetry Collector Builder)
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
-    go install go.opentelemetry.io/collector/cmd/builder@v0.154.0
+    go install go.opentelemetry.io/collector/cmd/builder@v0.156.0
 
 WORKDIR /build
 
@@ -24,7 +24,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     builder --config=manifest.yaml
 
 # Runtime stage
-FROM alpine:3.23@sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659
+FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
 
 LABEL org.opencontainers.image.description="Tero OpenTelemetry Collector Distribution"
 LABEL org.opencontainers.image.source="https://github.com/usetero/tero-collector-distro"
