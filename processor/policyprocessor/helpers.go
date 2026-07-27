@@ -7,18 +7,8 @@ import (
 	"go.opentelemetry.io/collector/pdata/pcommon"
 )
 
-func traversePath(attrs pcommon.Map, path []string) []byte {
-	if result := traversePathRec(attrs, path); result != nil {
-		return result
-	}
-	if result, ok := attrs.Get(strings.Join(path, ".")); ok {
-		return valueToBytes(result)
-	}
-	return nil
-}
-
 // pathExists reports whether the attribute path is present in attrs.
-// Matches the lookup behavior of traversePath: tries the nested path first,
+// Matches the lookup behavior of traversePathTyped: tries the nested path first,
 // then the flattened dotted key.
 func pathExists(attrs pcommon.Map, path []string) bool {
 	if pathExistsRec(attrs, path) {
@@ -43,27 +33,6 @@ func pathExistsRec(attrs pcommon.Map, path []string) bool {
 		return false
 	}
 	return pathExistsRec(val.Map(), path[1:])
-}
-
-func traversePathRec(attrs pcommon.Map, path []string) []byte {
-	if len(path) == 0 {
-		return nil
-	}
-
-	val, ok := attrs.Get(path[0])
-	if !ok {
-		return nil
-	}
-
-	if len(path) == 1 {
-		return valueToBytes(val)
-	}
-
-	if val.Type() != pcommon.ValueTypeMap {
-		return nil
-	}
-
-	return traversePathRec(val.Map(), path[1:])
 }
 
 // getNestedAttr retrieves a string value at a nested attribute path.
@@ -148,17 +117,6 @@ func putNestedAttr(attrs pcommon.Map, path []string, value string) {
 		return
 	}
 	putNestedAttr(val.Map(), path[1:], value)
-}
-
-func valueToBytes(val pcommon.Value) []byte {
-	if val.Type() != pcommon.ValueTypeStr {
-		return nil
-	}
-	s := val.Str()
-	if s == "" {
-		return nil
-	}
-	return []byte(s)
 }
 
 func traversePathTyped(attrs pcommon.Map, path []string) policy.TypedValue {
