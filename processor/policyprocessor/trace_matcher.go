@@ -15,120 +15,6 @@ type TraceContext struct {
 	ScopeSchemaURL    string
 }
 
-// TraceValue extracts string-typed field values as bytes for regex/substring/redact matching.
-// Returns nil for absent fields and for non-textual types.
-// Used as the WithTraceValue option for policy.EvaluateTrace.
-func TraceValue(ctx TraceContext, ref policy.TraceFieldRef) []byte {
-	if ref.IsField() {
-		switch ref.Field {
-		case policy.TraceFieldName:
-			s := ctx.Span.Name()
-			if s == "" {
-				return nil
-			}
-			return []byte(s)
-		case policy.TraceFieldTraceID:
-			traceID := ctx.Span.TraceID()
-			if traceID.IsEmpty() {
-				return nil
-			}
-			return traceID[:]
-		case policy.TraceFieldSpanID:
-			spanID := ctx.Span.SpanID()
-			if spanID.IsEmpty() {
-				return nil
-			}
-			return spanID[:]
-		case policy.TraceFieldParentSpanID:
-			parentSpanID := ctx.Span.ParentSpanID()
-			if parentSpanID.IsEmpty() {
-				return nil
-			}
-			return parentSpanID[:]
-		case policy.TraceFieldTraceState:
-			s := ctx.Span.TraceState().AsRaw()
-			if s == "" {
-				return nil
-			}
-			return []byte(s)
-		case policy.TraceFieldKind:
-			switch ctx.Span.Kind() {
-			case ptrace.SpanKindInternal:
-				return []byte("internal")
-			case ptrace.SpanKindServer:
-				return []byte("server")
-			case ptrace.SpanKindClient:
-				return []byte("client")
-			case ptrace.SpanKindProducer:
-				return []byte("producer")
-			case ptrace.SpanKindConsumer:
-				return []byte("consumer")
-			default:
-				return nil
-			}
-		case policy.TraceFieldStatus:
-			switch ctx.Span.Status().Code() {
-			case ptrace.StatusCodeOk:
-				return []byte("ok")
-			case ptrace.StatusCodeError:
-				return []byte("error")
-			case ptrace.StatusCodeUnset:
-				return []byte("unset")
-			default:
-				return nil
-			}
-		case policy.TraceFieldEventName:
-			events := ctx.Span.Events()
-			for i := 0; i < events.Len(); i++ {
-				if name := events.At(i).Name(); name != "" {
-					return []byte(name)
-				}
-			}
-			return nil
-		case policy.TraceFieldScopeName:
-			s := ctx.Scope.Name()
-			if s == "" {
-				return nil
-			}
-			return []byte(s)
-		case policy.TraceFieldScopeVersion:
-			s := ctx.Scope.Version()
-			if s == "" {
-				return nil
-			}
-			return []byte(s)
-		case policy.TraceFieldResourceSchemaURL:
-			s := ctx.ResourceSchemaURL
-			if s == "" {
-				return nil
-			}
-			return []byte(s)
-		case policy.TraceFieldScopeSchemaURL:
-			s := ctx.ScopeSchemaURL
-			if s == "" {
-				return nil
-			}
-			return []byte(s)
-		default:
-			return nil
-		}
-	}
-
-	var attrs pcommon.Map
-	switch {
-	case ref.IsResourceAttr():
-		attrs = ctx.Resource.Attributes()
-	case ref.IsScopeAttr():
-		attrs = ctx.Scope.Attributes()
-	case ref.IsRecordAttr():
-		attrs = ctx.Span.Attributes()
-	default:
-		return nil
-	}
-
-	return traversePath(attrs, ref.AttrPath)
-}
-
 // TraceTypedMatcher extracts field values from a TraceContext for typed comparison (equals/gt/gte/lt/lte).
 // Returns TypedValue{} (absent) for missing fields.
 // Used as the WithTraceTypedValue option for policy.EvaluateTrace.
@@ -237,6 +123,17 @@ func TraceTypedMatcher(ctx TraceContext, ref policy.TraceFieldRef) policy.TypedV
 		attrs = ctx.Scope.Attributes()
 	case ref.IsRecordAttr():
 		attrs = ctx.Span.Attributes()
+	case ref.IsEventAttr():
+		// The spec reads "matches if span contains an event with this
+		// attribute", so scan every event and use the first one that actually
+		// carries the path rather than only inspecting events[0].
+		events := ctx.Span.Events()
+		for i := 0; i < events.Len(); i++ {
+			if v := traversePathTyped(events.At(i).Attributes(), ref.AttrPath); v.Kind != policy.TypedValueAbsent {
+				return v
+			}
+		}
+		return policy.TypedValue{}
 	default:
 		return policy.TypedValue{}
 	}
@@ -292,6 +189,14 @@ func TraceExists(ctx TraceContext, ref policy.TraceFieldRef) bool {
 		attrs = ctx.Scope.Attributes()
 	case ref.IsRecordAttr():
 		attrs = ctx.Span.Attributes()
+	case ref.IsEventAttr():
+		events := ctx.Span.Events()
+		for i := 0; i < events.Len(); i++ {
+			if pathExists(events.At(i).Attributes(), ref.AttrPath) {
+				return true
+			}
+		}
+		return false
 	default:
 		return false
 	}

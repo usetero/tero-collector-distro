@@ -676,7 +676,11 @@ func TestProcessTraces_TraceID(t *testing.T) {
 					Match: []*policyv1.TraceMatcher{
 						{
 							Field: &policyv1.TraceMatcher_TraceField{TraceField: policyv1.TraceField_TRACE_FIELD_TRACE_ID},
-							Match: &policyv1.TraceMatcher_Exact{Exact: "trace-id-abc1234"},
+							// Identifier fields are authored as lowercase hex: the
+							// engine hex-encodes trace_id/span_id/parent_span_id
+							// before string pattern matching. This is the hex of
+							// the 16 raw bytes "trace-id-abc1234".
+							Match: &policyv1.TraceMatcher_Exact{Exact: "74726163652d69642d61626331323334"},
 						},
 					},
 					Keep: dropConfig(),
@@ -1046,6 +1050,101 @@ func TestProcessTraces_TypedMatchers(t *testing.T) {
 			span.SetName("test-span")
 			if tc.setAttr != nil {
 				tc.setAttr(span.Attributes())
+			}
+
+			result, err := p.processTraces(context.Background(), traces)
+			require.NoError(t, err)
+
+			if tc.wantDrop {
+				assert.Equal(t, 0, result.ResourceSpans().Len(), "expected span to be dropped")
+			} else {
+				require.Equal(t, 1, result.ResourceSpans().Len(), "expected span to be kept")
+				assert.Equal(t, 1, result.ResourceSpans().At(0).ScopeSpans().At(0).Spans().Len())
+			}
+		})
+	}
+}
+
+// TestProcessTraces_EventAttribute covers matching on span event attributes.
+// The spec reads "matches if span contains an event with this attribute", so
+// an attribute carried by any event — not just the first — must match.
+func TestProcessTraces_EventAttribute(t *testing.T) {
+	type event struct {
+		name  string
+		attrs map[string]string
+	}
+
+	tests := []struct {
+		name     string
+		events   []event
+		wantDrop bool
+	}{
+		{
+			name:     "attribute on the only event",
+			events:   []event{{name: "exception", attrs: map[string]string{"level": "fatal"}}},
+			wantDrop: true,
+		},
+		{
+			name: "attribute on a later event still matches",
+			events: []event{
+				{name: "start", attrs: map[string]string{"phase": "begin"}},
+				{name: "exception", attrs: map[string]string{"level": "fatal"}},
+			},
+			wantDrop: true,
+		},
+		{
+			name:     "attribute present with a different value is kept",
+			events:   []event{{name: "exception", attrs: map[string]string{"level": "warn"}}},
+			wantDrop: false,
+		},
+		{
+			name:     "no event carries the attribute",
+			events:   []event{{name: "start", attrs: map[string]string{"phase": "begin"}}},
+			wantDrop: false,
+		},
+		{
+			name:     "span with no events is kept",
+			events:   nil,
+			wantDrop: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			policies := []*policyv1.Policy{
+				{
+					Id:      "drop-fatal-events",
+					Name:    "Drop Fatal Events",
+					Enabled: true,
+					Target: &policyv1.Policy_Trace{
+						Trace: &policyv1.TraceTarget{
+							Match: []*policyv1.TraceMatcher{
+								{
+									Field: &policyv1.TraceMatcher_EventAttribute{
+										EventAttribute: &policyv1.AttributePath{Path: []string{"level"}},
+									},
+									Match: &policyv1.TraceMatcher_Exact{Exact: "fatal"},
+								},
+							},
+							Keep: dropConfig(),
+						},
+					},
+				},
+			}
+
+			p := createTestTraceProcessor(t, policies)
+
+			traces := ptrace.NewTraces()
+			rs := traces.ResourceSpans().AppendEmpty()
+			ss := rs.ScopeSpans().AppendEmpty()
+			span := ss.Spans().AppendEmpty()
+			span.SetName("test-span")
+			for _, e := range tc.events {
+				ev := span.Events().AppendEmpty()
+				ev.SetName(e.name)
+				for k, v := range e.attrs {
+					ev.Attributes().PutStr(k, v)
+				}
 			}
 
 			result, err := p.processTraces(context.Background(), traces)

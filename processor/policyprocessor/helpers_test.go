@@ -4,27 +4,33 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/usetero/policy-go/policy"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 )
 
-func TestTraversePath(t *testing.T) {
+// TestTraversePathTyped covers attribute lookup: nested-map traversal, the
+// flattened dotted-key fallback, precedence between the two, and the typed
+// value produced at the leaf. Since policy-go v1.11.0 the TypedValue accessor
+// is the single field-read primitive, so non-string leaves resolve to their
+// native typed value rather than being invisible.
+func TestTraversePathTyped(t *testing.T) {
 	tests := []struct {
 		name     string
 		setup    func(pcommon.Map)
 		path     []string
-		expected []byte
+		expected policy.TypedValue
 	}{
 		{
-			name:     "empty path returns nil",
+			name:     "empty path is absent",
 			setup:    func(_ pcommon.Map) {},
 			path:     []string{},
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 		{
-			name:     "nil path returns nil",
+			name:     "nil path is absent",
 			setup:    func(_ pcommon.Map) {},
 			path:     nil,
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 		{
 			name: "single key string match at top level",
@@ -32,15 +38,15 @@ func TestTraversePath(t *testing.T) {
 				m.PutStr("foo", "bar")
 			},
 			path:     []string{"foo"},
-			expected: []byte("bar"),
+			expected: policy.TypedValueOfString("bar"),
 		},
 		{
-			name: "single key not found returns nil",
+			name: "single key not found is absent",
 			setup: func(m pcommon.Map) {
 				m.PutStr("other", "value")
 			},
 			path:     []string{"missing"},
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 		{
 			name: "single key with dot in name found directly",
@@ -48,7 +54,7 @@ func TestTraversePath(t *testing.T) {
 				m.PutStr("k8s.pod.name", "my-pod")
 			},
 			path:     []string{"k8s.pod.name"},
-			expected: []byte("my-pod"),
+			expected: policy.TypedValueOfString("my-pod"),
 		},
 		{
 			name: "two level nested map found",
@@ -57,7 +63,7 @@ func TestTraversePath(t *testing.T) {
 				inner.PutStr("b", "nested-value")
 			},
 			path:     []string{"a", "b"},
-			expected: []byte("nested-value"),
+			expected: policy.TypedValueOfString("nested-value"),
 		},
 		{
 			name: "three level nested map found",
@@ -67,7 +73,7 @@ func TestTraversePath(t *testing.T) {
 				lvl2.PutStr("c", "deep-value")
 			},
 			path:     []string{"a", "b", "c"},
-			expected: []byte("deep-value"),
+			expected: policy.TypedValueOfString("deep-value"),
 		},
 		{
 			name: "fallback to joined dotted key when nested path does not exist",
@@ -75,7 +81,7 @@ func TestTraversePath(t *testing.T) {
 				m.PutStr("k8s.pod.name", "my-pod")
 			},
 			path:     []string{"k8s", "pod", "name"},
-			expected: []byte("my-pod"),
+			expected: policy.TypedValueOfString("my-pod"),
 		},
 		{
 			name: "fallback when first segment does not exist as key",
@@ -83,7 +89,7 @@ func TestTraversePath(t *testing.T) {
 				m.PutStr("service.name", "auth-service")
 			},
 			path:     []string{"service", "name"},
-			expected: []byte("auth-service"),
+			expected: policy.TypedValueOfString("auth-service"),
 		},
 		{
 			name: "nested traversal takes precedence over dotted key fallback",
@@ -93,7 +99,7 @@ func TestTraversePath(t *testing.T) {
 				m.PutStr("a.b", "from-dotted")
 			},
 			path:     []string{"a", "b"},
-			expected: []byte("from-nested"),
+			expected: policy.TypedValueOfString("from-nested"),
 		},
 		{
 			name: "first key exists but is not a map, falls back to dotted key",
@@ -102,24 +108,24 @@ func TestTraversePath(t *testing.T) {
 				m.PutStr("a.b", "from-dotted")
 			},
 			path:     []string{"a", "b"},
-			expected: []byte("from-dotted"),
+			expected: policy.TypedValueOfString("from-dotted"),
 		},
 		{
-			name: "first key exists but is not a map and no dotted fallback returns nil",
+			name: "first key exists but is not a map and no dotted fallback is absent",
 			setup: func(m pcommon.Map) {
 				m.PutStr("a", "scalar")
 			},
 			path:     []string{"a", "b"},
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 		{
-			name: "intermediate key exists as map but inner key missing returns nil",
+			name: "intermediate key exists as map but inner key missing is absent",
 			setup: func(m pcommon.Map) {
 				inner := m.PutEmptyMap("a")
 				inner.PutStr("other", "value")
 			},
 			path:     []string{"a", "b"},
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 		{
 			name: "intermediate key exists as map, inner key missing, dotted fallback wins",
@@ -129,7 +135,7 @@ func TestTraversePath(t *testing.T) {
 				m.PutStr("a.b", "fallback-value")
 			},
 			path:     []string{"a", "b"},
-			expected: []byte("fallback-value"),
+			expected: policy.TypedValueOfString("fallback-value"),
 		},
 		{
 			name: "intermediate non-map at depth 2 with dotted fallback",
@@ -139,127 +145,119 @@ func TestTraversePath(t *testing.T) {
 				m.PutStr("a.b.c", "fallback-value")
 			},
 			path:     []string{"a", "b", "c"},
-			expected: []byte("fallback-value"),
+			expected: policy.TypedValueOfString("fallback-value"),
 		},
 		{
-			name: "intermediate non-map at depth 2 without fallback returns nil",
+			name: "intermediate non-map at depth 2 without fallback is absent",
 			setup: func(m pcommon.Map) {
 				inner := m.PutEmptyMap("a")
 				inner.PutStr("b", "scalar-not-map")
 			},
 			path:     []string{"a", "b", "c"},
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 		{
-			name:     "completely empty attributes returns nil",
+			name:     "completely empty attributes is absent",
 			setup:    func(_ pcommon.Map) {},
 			path:     []string{"any", "path"},
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 		{
-			// Non-string values are invisible to value matchers; an exists
-			// check still sees them, but traversePath returns nil.
-			name: "int value at leaf returns nil",
+			name: "int value at leaf resolves as typed int",
 			setup: func(m pcommon.Map) {
 				m.PutInt("count", 42)
 			},
 			path:     []string{"count"},
-			expected: nil,
+			expected: policy.TypedValueOfInt(42),
 		},
 		{
-			name: "int value via fallback returns nil",
+			name: "int value via dotted fallback resolves as typed int",
 			setup: func(m pcommon.Map) {
 				m.PutInt("a.b", 100)
 			},
 			path:     []string{"a", "b"},
-			expected: nil,
+			expected: policy.TypedValueOfInt(100),
 		},
 		{
-			name: "double value at leaf returns nil",
+			name: "double value at leaf resolves as typed double",
 			setup: func(m pcommon.Map) {
 				m.PutDouble("ratio", 3.14)
 			},
 			path:     []string{"ratio"},
-			expected: nil,
+			expected: policy.TypedValueOfDouble(3.14),
 		},
 		{
-			name: "bool true value returns nil",
+			name: "bool true value resolves as typed bool",
 			setup: func(m pcommon.Map) {
 				m.PutBool("enabled", true)
 			},
 			path:     []string{"enabled"},
-			expected: nil,
+			expected: policy.TypedValueOfBool(true),
 		},
 		{
-			name: "bool false value returns nil",
+			name: "bool false value resolves as typed bool",
 			setup: func(m pcommon.Map) {
 				m.PutBool("enabled", false)
 			},
 			path:     []string{"enabled"},
-			expected: nil,
+			expected: policy.TypedValueOfBool(false),
 		},
 		{
-			name: "bytes value returns nil",
+			name: "bytes value resolves as typed bytes",
 			setup: func(m pcommon.Map) {
-				b := m.PutEmptyBytes("payload")
-				b.FromRaw([]byte{0x01, 0x02, 0x03})
+				m.PutEmptyBytes("payload").FromRaw([]byte{0x01, 0x02, 0x03})
 			},
 			path:     []string{"payload"},
-			expected: nil,
+			expected: policy.TypedValueOfBytes([]byte{0x01, 0x02, 0x03}),
 		},
 		{
-			name: "empty string value returns nil",
+			// An attribute holding the empty string is present with an empty
+			// value — unlike log_field accessors, where empty means absent.
+			name: "empty string value is a present empty string",
 			setup: func(m pcommon.Map) {
 				m.PutStr("foo", "")
 			},
 			path:     []string{"foo"},
-			expected: nil,
+			expected: policy.TypedValueOfString(""),
 		},
 		{
-			name: "empty string value via fallback also returns nil",
+			name: "empty string via dotted fallback is a present empty string",
 			setup: func(m pcommon.Map) {
 				m.PutStr("a.b", "")
 			},
 			path:     []string{"a", "b"},
-			expected: nil,
+			expected: policy.TypedValueOfString(""),
 		},
 		{
-			name: "nested empty string at leaf returns nil",
-			setup: func(m pcommon.Map) {
-				inner := m.PutEmptyMap("a")
-				inner.PutStr("b", "")
-			},
-			path:     []string{"a", "b"},
-			expected: nil,
-		},
-		{
-			name: "nested empty string at leaf falls back to dotted key",
+			// The nested hit wins even though it is empty; the dotted key is
+			// only consulted when the nested path resolves to nothing at all.
+			name: "nested empty string at leaf wins over dotted fallback",
 			setup: func(m pcommon.Map) {
 				inner := m.PutEmptyMap("a")
 				inner.PutStr("b", "")
 				m.PutStr("a.b", "fallback")
 			},
 			path:     []string{"a", "b"},
-			expected: []byte("fallback"),
+			expected: policy.TypedValueOfString(""),
 		},
 		{
-			name: "map value at leaf returns nil",
+			name: "map value at leaf is absent",
 			setup: func(m pcommon.Map) {
 				inner := m.PutEmptyMap("obj")
 				inner.PutStr("k", "v")
 			},
 			path:     []string{"obj"},
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 		{
-			name: "slice value at leaf returns nil",
+			name: "slice value at leaf is absent",
 			setup: func(m pcommon.Map) {
 				s := m.PutEmptySlice("list")
 				s.AppendEmpty().SetStr("a")
 				s.AppendEmpty().SetStr("b")
 			},
 			path:     []string{"list"},
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 		{
 			name: "single segment path matching a key with multiple dots",
@@ -267,7 +265,7 @@ func TestTraversePath(t *testing.T) {
 				m.PutStr("a.b.c.d", "deep-flat")
 			},
 			path:     []string{"a.b.c.d"},
-			expected: []byte("deep-flat"),
+			expected: policy.TypedValueOfString("deep-flat"),
 		},
 		{
 			name: "fallback with four-segment path joined",
@@ -275,16 +273,16 @@ func TestTraversePath(t *testing.T) {
 				m.PutStr("a.b.c.d", "deep-flat")
 			},
 			path:     []string{"a", "b", "c", "d"},
-			expected: []byte("deep-flat"),
+			expected: policy.TypedValueOfString("deep-flat"),
 		},
 		{
-			name: "partial nesting plus dotted suffix is not supported and returns nil",
+			name: "partial nesting plus dotted suffix is not supported and is absent",
 			setup: func(m pcommon.Map) {
 				inner := m.PutEmptyMap("a")
 				inner.PutStr("b.c", "partial")
 			},
 			path:     []string{"a", "b", "c"},
-			expected: nil,
+			expected: policy.TypedValue{},
 		},
 		{
 			name: "dotted key with empty intermediate map present, fallback wins",
@@ -293,34 +291,26 @@ func TestTraversePath(t *testing.T) {
 				m.PutStr("a.b", "fallback")
 			},
 			path:     []string{"a", "b"},
-			expected: []byte("fallback"),
+			expected: policy.TypedValueOfString("fallback"),
 		},
 		{
-			name: "single segment matches integer attribute via fallback returns nil",
-			setup: func(m pcommon.Map) {
-				m.PutInt("answer", 42)
-			},
-			path:     []string{"answer"},
-			expected: nil,
-		},
-		{
-			name: "deeply nested int at leaf returns nil",
+			name: "deeply nested int at leaf resolves as typed int",
 			setup: func(m pcommon.Map) {
 				lvl1 := m.PutEmptyMap("metrics")
 				lvl2 := lvl1.PutEmptyMap("counters")
 				lvl2.PutInt("requests", 1234)
 			},
 			path:     []string{"metrics", "counters", "requests"},
-			expected: nil,
+			expected: policy.TypedValueOfInt(1234),
 		},
 		{
-			name: "deeply nested bool at leaf returns nil",
+			name: "deeply nested bool at leaf resolves as typed bool",
 			setup: func(m pcommon.Map) {
 				lvl1 := m.PutEmptyMap("flags")
 				lvl1.PutBool("on", true)
 			},
 			path:     []string{"flags", "on"},
-			expected: nil,
+			expected: policy.TypedValueOfBool(true),
 		},
 	}
 
@@ -328,7 +318,7 @@ func TestTraversePath(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			attrs := pcommon.NewMap()
 			tt.setup(attrs)
-			got := traversePath(attrs, tt.path)
+			got := traversePathTyped(attrs, tt.path)
 			assert.Equal(t, tt.expected, got)
 		})
 	}
