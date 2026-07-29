@@ -191,6 +191,7 @@ This distribution includes the following components:
 - Debug
 - OTLP (gRPC)
 - OTLP/HTTP
+- Google Cloud Managed Prometheus
 
 ### Extensions
 
