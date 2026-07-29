@@ -74,6 +74,31 @@ jobs:
         run: |
           sed -i "s/version: .*/version: ${{ needs.prepare.outputs.version }}/" collector/manifest.yaml
 
+      - name: Build binary
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          file: collector/Dockerfile
+          target: binary
+          platforms: ${{ matrix.platform }}
+          outputs: type=local,dest=/tmp/binary
+          cache-from: type=gha,scope=${{ matrix.arch }}
+
+      - name: Package binary
+        run: |
+          mkdir -p /tmp/release
+          tar -C /tmp/binary -czf \
+            "/tmp/release/tero-collector_${{ needs.prepare.outputs.version }}_linux_${{ matrix.arch }}.tar.gz" \
+            tero-collector
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: binary-${{ matrix.arch }}
+          path: /tmp/release/*.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+
       - name: Build and push by digest
         id: build
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
@@ -144,10 +169,34 @@ jobs:
         run: |
           docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.version }}
 
+  publish-binaries:
+    name: Publish binaries
+    runs-on: ubuntu-24.04
+    needs: [prepare, build]
+    if: ${{ github.ref_type == 'tag' && inputs.dry_run != true }}
+    steps:
+      - name: Download binaries
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          path: dist
+          pattern: binary-*
+          merge-multiple: true
+
+      - name: Create checksums
+        working-directory: dist
+        run: |
+          sha256sum tero-collector_*.tar.gz \
+            > "tero-collector_${{ needs.prepare.outputs.version }}_checksums.txt"
+
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "$GITHUB_REF_NAME" dist/* --clobber
+
   summary:
     name: Release summary
     runs-on: ubuntu-24.04
-    needs: [prepare, build, merge]
+    needs: [prepare, build, merge, publish-binaries]
     if: always()
     steps:
       - name: Generate summary
@@ -162,7 +211,7 @@ jobs:
 
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             echo "### Dry Run Mode" >> $GITHUB_STEP_SUMMARY
-            echo "Images were built but not pushed to registry." >> $GITHUB_STEP_SUMMARY
+            echo "Images and binaries were built but not published." >> $GITHUB_STEP_SUMMARY
           else
             echo "### Docker Image" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
@@ -171,4 +220,13 @@ jobs:
             echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
             echo "docker pull $IMAGE:$VERSION" >> $GITHUB_STEP_SUMMARY
             echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+            if [ "${{ github.ref_type }}" = "tag" ]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "### Release Binaries" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "**Platforms:** linux/amd64, linux/arm64" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "Binary archives and SHA-256 checksums were attached to the GitHub release." >> $GITHUB_STEP_SUMMARY
+            fi
           fi
