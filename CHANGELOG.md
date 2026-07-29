@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.15.0](https://github.com/usetero/tero-collector-distro/compare/v0.14.0...v0.15.0) (2026-07-29)
+
+
+### Features
+
+* add google managed prometheus exporter ([#97](https://github.com/usetero/tero-collector-distro/issues/97)) ([66cd01d](https://github.com/usetero/tero-collector-distro/commit/66cd01dea0ca9aa9ea21b49d47ac36a5be83550b))
+* publish binaries with releases ([#95](https://github.com/usetero/tero-collector-distro/issues/95)) ([50dcb3e](https://github.com/usetero/tero-collector-distro/commit/50dcb3e2add0eb29e73549efd757854de1c75d88))
+
 ## [0.14.0](https://github.com/usetero/tero-collector-distro/compare/v0.13.0...v0.14.0) (2026-07-28)
 
 
