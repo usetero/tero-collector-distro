@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.16.0](https://github.com/usetero/tero-collector-distro/compare/v0.15.0...v0.16.0) (2026-09-18)
+
+
+### Features
+
+* update OpenTelemetry collector to v0.161.0 and policy-go to v1.12.0 ([#103](https://github.com/usetero/tero-collector-distro/issues/103)) ([5ce1653](https://github.com/usetero/tero-collector-distro/commit/5ce16530787956d3e7279eb654bcc56459261b3c))
+
 ## [0.15.0](https://github.com/usetero/tero-collector-distro/compare/v0.14.0...v0.15.0) (2026-07-29)
 
 
