@@ -1,6 +1,6 @@
-# syntax=docker/dockerfile:1.25@sha256:0adf442eae370b6087e08edc7c50b552d80ddf261576f4ebd6421006b2461f12
+# syntax=docker/dockerfile:1.27@sha256:bde3983e9c939224420ddaf6b784cc30e09b035a4dea01f581230c50809f372e
 # Build stage
-FROM golang:1.26-alpine@sha256:0178a641fbb4858c5f1b48e34bdaabe0350a330a1b1149aabd498d0699ff5fb2 AS builder
+FROM golang:1.27-alpine@sha256:4cb7ac979db5fcc41cae44b2227ba5ab8a51e8807f40d9ba4dee20a0ad960b5b AS builder
 
 # Install build dependencies including Vectorscan (Hyperscan fork)
 RUN apk add --no-cache git build-base clang lld vectorscan-dev vectorscan-static pkgconf
@@ -30,7 +30,7 @@ FROM scratch AS binary
 COPY --from=builder /build/collector/_build/tero-collector /tero-collector
 
 # Runtime stage
-FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
+FROM alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6
 
 LABEL org.opencontainers.image.description="Tero OpenTelemetry Collector Distribution"
 LABEL org.opencontainers.image.source="https://github.com/usetero/tero-collector-distro"
