@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.17.0](https://github.com/usetero/tero-collector-distro/compare/v0.16.0...v0.17.0) (2026-09-23)
+
+
+### Features
+
+* update policy-go to policy v1.12.1, proto v1.11.1, hyperscan v1.10.3 ([#107](https://github.com/usetero/tero-collector-distro/issues/107)) ([d3d647a](https://github.com/usetero/tero-collector-distro/commit/d3d647a927261677d92571582ab7e2af7d2bebfa))
+
+
+### Bug Fixes
+
+* pin grpc to v1.83.2 for CVE-2026-84445 and update Docker base images ([#105](https://github.com/usetero/tero-collector-distro/issues/105)) ([0202b74](https://github.com/usetero/tero-collector-distro/commit/0202b740f5dd297224db3437d1ea243649764bec))
+
 ## [0.16.0](https://github.com/usetero/tero-collector-distro/compare/v0.15.0...v0.16.0) (2026-09-18)
 
 
