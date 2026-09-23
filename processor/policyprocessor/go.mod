@@ -4,9 +4,9 @@ go 1.26.0
 
 require (
 	github.com/stretchr/testify v1.12.1
-	github.com/usetero/policy-go/backend/hyperscan v1.10.2
-	github.com/usetero/policy-go/policy v1.12.0
-	github.com/usetero/policy-go/proto v1.11.0
+	github.com/usetero/policy-go/backend/hyperscan v1.10.3
+	github.com/usetero/policy-go/policy v1.12.1
+	github.com/usetero/policy-go/proto v1.11.1
 	go.opentelemetry.io/collector/component v1.67.0
 	go.opentelemetry.io/collector/component/componenttest v0.161.0
 	go.opentelemetry.io/collector/confmap v1.67.0
