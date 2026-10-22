@@ -104,7 +104,8 @@ tasks:
     desc: Generate documentation
     dir: processor/policyprocessor
     cmds:
-      - go doc -all ./...
+      # go doc takes one package at a time; it rejects the ./... pattern.
+      - go list ./... | xargs -n1 go doc -all
 
   # Development workflows
   do:
