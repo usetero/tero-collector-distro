@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.1](https://github.com/usetero/tero-collector-distro/compare/v0.17.0...v0.17.1) (2026-10-22)
+
+
+### Bug Fixes
+
+* update Go to 1.27.3 and OTel collector to v0.163.0 (CVE-2026-56857, CVE-2026-78663) ([#110](https://github.com/usetero/tero-collector-distro/issues/110)) ([4509424](https://github.com/usetero/tero-collector-distro/commit/45094248d31d5cbeafa3d1aa63ae31f65830426c))
+
 ## [0.17.0](https://github.com/usetero/tero-collector-distro/compare/v0.16.0...v0.17.0) (2026-09-23)
 
 
